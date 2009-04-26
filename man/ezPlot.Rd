@@ -100,7 +100,7 @@ The default error bars are Fisher's Least Significant Difference for the plotted
 }
 
 \seealso{
-\code{\link{ezANOVA}, \link{ezStats}}
+\code{\link{ezANOVA}}, \code{\link{ezPerm}}, \code{\link{ezStats}}
 }
 \examples{
 #Read in the ANT data (see ?ANT).

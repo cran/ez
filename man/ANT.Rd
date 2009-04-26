@@ -28,7 +28,7 @@ ANT data
 J Fan, BD McCandliss, T Sommer, A Raz, MI Posner (2002). Testing the efficiency and independence of attentional networks. \emph{Journal of Cognitive Neuroscience}, \bold{14}, 340-347.
 }
 \seealso{
-\code{\link{ezANOVA}}, \code{\link{ezStats}}, \code{\link{ezPlot}}
+\code{\link{ezANOVA}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezStats}}
 }
 \examples{
 data(ANT)

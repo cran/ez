@@ -170,3 +170,18 @@ function(data, dv, sid, within, between){
 	}
 }
 
+
+ezPerm_aov <-
+function(data, aov_formula){
+	this_aov = aov(
+		formula(aov_formula)
+		,data = data
+	)
+	f_list=llply(this_aov,function(x){summary(x)[[1]]$F})
+	f = NULL
+	for(i in f_list){
+		f=c(f,i)
+	}
+	f=f[!is.na(f)]
+	return(f)
+}

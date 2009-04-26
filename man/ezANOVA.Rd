@@ -38,7 +38,7 @@ While \code{within} and \code{between} are both optional, at least one column of
 }
 \value{
 A list containing one or more of the following components:
-\item{anova}{A data frame containing the ANOVA results.}
+\item{ANOVA}{A data frame containing the ANOVA results.}
 \item{Mauchly's Test for Sphericity}{If any within-Ss variables are present, a data frame containing the results of Mauchly's test for Sphericity.}
 \item{Sphericity Corrections}{If any within-Ss variables are present, a data frame containing the Greenhouse-Geisser & Huynh-Feldt epsilon values, and corresponding corrected p-values.}
 \item{Levene's Test for Homgeneity}{If the design is purely between-Ss, a data frame containing the results of Levene's test for Homgeneity of variance.}
@@ -53,8 +53,7 @@ Michael A. Lawrence \email{Mike.Lawrence@dal.ca}
 Huynh-Feldt corrected p-values where the Huynh-Feldt epsilon >1 will use 1 as the correction epsilon.
 }
 \note{
-The statistical computing in \code{ezAnova()} is driven by the \code{Anova()} function from the \code{car} package, using the univariate Type-II test. See \code{?Anova()} for implementation details.
-Some column names in the output data frames are abbreviated to conserve space:
+The statistical computing in \code{ezAnova()} is driven by the \code{\link[car]{Anova}} function from the \code{car} package, using the univariate Type-II test. Some column names in the output data frames are abbreviated to conserve space:
 \itemize{
 \item{DFn}{Degrees of Freedom in the numerator (a.k.a. DFeffect).}
 \item{DFd}{Degrees of Freedom in the denominator (a.k.a. DFerror).}
@@ -73,7 +72,7 @@ Some column names in the output data frames are abbreviated to conserve space:
 }
 }
 \seealso{
-\code{\link{ezStats}}, \code{\link{ezPlot}}, \code{\link[car]{Anova}}
+\code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezStats}}
 }
 \examples{
 #Read in the ANT data (see ?ANT).

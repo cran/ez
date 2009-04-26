@@ -1,24 +1,33 @@
 \name{ez-package}
 \Rdversion{1.1}
-\alias{ez-package}
+\alias{ez}
 \docType{package}
 \title{
 Easy analysis and visualization of factorial experiments.
 }
 \description{
-This package facilitates easy analysis of factorial experiments, including purely within-Ss designs (a.k.a. "repeated measures"), purely between-Ss designs, and mixed within-and-between-Ss designs. The functions in this package provide easy access to descriptive statistics (\code{ezStats()}), ANOVA (\code{ezANOVA()}, including non-parametric permutation tests), and visualization of results (\code{ezPlot()}).}
+This package facilitates easy analysis of factorial experiments, including purely within-Ss designs (a.k.a. "repeated measures"), purely between-Ss designs, and mixed within-and-between-Ss designs. The functions in this package provide easy access to descriptive statistics (\code{\link{ezStats}}), ANOVA (\code{\link{ezANOVA}}), non-parametric permutation tests (\code{\link{ezPerm}}), and visualization of results (\code{\link{ezPlot}}).}
 \details{
 \tabular{ll}{
 Package: \tab ez\cr
 Type: \tab Package\cr
-Version: \tab 1.0\cr
+Version: \tab 1.1\cr
 Date: \tab 2009-04-26\cr
 License: \tab GPL-3\cr
 LazyLoad: \tab yes\cr
 }
-This package contains three useful functions. \code{ezANOVA()} provides simple interface to ANOVA (including assumption checks). \code{ezStats()} provides descriptive statistics for any given user-requested effect. \code{ezPlot()} uses the ggplot2 graphing package to generate plots for any given user-requested effect, by default producing error bars that facilitate visual post-hoc multiple comparisons.
+This package contains four useful functions:
+\itemize{
+\item{\code{\link{ezANOVA}}}{Provides simple interface to ANOVA, including assumption checks.}
+\item{\code{\link{ezPerm}}}{Provides simple interface to the Permutation test.}
+\item{\code{\link{ezPlot}}}{Uses the \code{ggplot2} graphing package to generate plots for any given user-requested effect, by default producing error bars that facilitate visual post-hoc multiple comparisons.}
+\item{\code{\link{ezStats}}}{Provides between-Ss descriptive statistics for any given user-requested effect}
+}
 }
 \author{
 Author & Maintainer: Michael A. Lawrence \email{Mike.Lawrence@dal.ca}
+}
+\seealso{
+\code{\link{ezANOVA}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezStats}}
 }
 \keyword{ package }

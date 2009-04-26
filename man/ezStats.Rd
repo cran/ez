@@ -49,7 +49,7 @@ The descriptives include Fisher's Least Significant Difference for the requested
 }
 
 \seealso{
-\code{\link{ezANOVA}}, \code{\link{ezPlot}}
+\code{\link{ezANOVA}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}
 }
 \examples{
 #Read in the ANT data (see ?ANT).

@@ -37,10 +37,7 @@ Optional .() object specifying the column(s) in \code{data} that contains indepe
 While \code{within} and \code{between} are both optional, at least one column of \code{data} must be provided to either \code{within} or \code{between}. Any numeric or character variables in \code{data} that are specified as either \code{sid}, \code{within} or \code{between} will be converted to a factor with a warning.
 }
 \value{
-A list including the following components:
-\item{descriptives}{A data frame containing the descriptive statistics for the requested effect. N = number of Ss per cell. Mean = between-Ss mean. SD = between-Ss SD. FLSD = Fisher's Least Significant Difference.}
-\item{anova}{A data frame from \code{ezAnova()} containing the ANOVA for the requested effect.}
-}
+A data frame containing the descriptive statistics for the requested effect. N = number of Ss per cell. Mean = between-Ss mean. SD = between-Ss SD. FLSD = Fisher's Least Significant Difference.}
 \author{
 Michael A. Lawrence \email{Mike.Lawrence@dal.ca}
 }

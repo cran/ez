@@ -11,23 +11,24 @@ This package facilitates easy analysis of factorial experiments, including purel
 \tabular{ll}{
 Package: \tab ez\cr
 Type: \tab Package\cr
-Version: \tab 1.1\cr
-Date: \tab 2009-04-26\cr
+Version: \tab 1.2\cr
+Date: \tab 2009-05-17\cr
 License: \tab GPL-3\cr
 LazyLoad: \tab yes\cr
 }
-This package contains four useful functions:
+This package contains several useful functions:
 \itemize{
 \item{\code{\link{ezANOVA}}}{Provides simple interface to ANOVA, including assumption checks.}
 \item{\code{\link{ezPerm}}}{Provides simple interface to the Permutation test.}
 \item{\code{\link{ezPlot}}}{Uses the \code{ggplot2} graphing package to generate plots for any given user-requested effect, by default producing error bars that facilitate visual post-hoc multiple comparisons.}
-\item{\code{\link{ezStats}}}{Provides between-Ss descriptive statistics for any given user-requested effect}
+\item{\code{\link{ezStats}}}{Provides between-Ss descriptive statistics for any given user-requested effect.}
+\item{\code{\link{relev}}}{Simple function to re-order the levels of a factor.}
 }
 }
 \author{
 Author & Maintainer: Michael A. Lawrence \email{Mike.Lawrence@dal.ca}
 }
 \seealso{
-\code{\link{ezANOVA}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezStats}}
+\code{\link{ezANOVA}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezStats}}, \code{\link{relev}}
 }
 \keyword{ package }

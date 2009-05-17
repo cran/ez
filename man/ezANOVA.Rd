@@ -42,18 +42,16 @@ A list containing one or more of the following components:
 \item{Mauchly's Test for Sphericity}{If any within-Ss variables are present, a data frame containing the results of Mauchly's test for Sphericity.}
 \item{Sphericity Corrections}{If any within-Ss variables are present, a data frame containing the Greenhouse-Geisser & Huynh-Feldt epsilon values, and corresponding corrected p-values.}
 \item{Levene's Test for Homgeneity}{If the design is purely between-Ss, a data frame containing the results of Levene's test for Homgeneity of variance.}
-\item{Levene's Test for Homgeneity (collapsing cells)}{If the design is contains both between-Ss and within-Ss variables, a data frame containing the results of Levene's test for Homgeneity of variance, computed after collapsing all within-Ss variables.}
-\item{Levene's Test for Homgeneity (within cells)}{If the design is contains both between-Ss and within-Ss variables, a data frame containing the results of Levene's test for Homgeneity of variance, computed within each cell of the within-Ss design.}
 }
 \author{
 Michael A. Lawrence \email{Mike.Lawrence@dal.ca}
 }
 
-\section{Warning }{
-Huynh-Feldt corrected p-values where the Huynh-Feldt epsilon >1 will use 1 as the correction epsilon.
+\section{Warning}{
+The statistical computing in \code{ezAnova()} is driven by the \code{\link[car]{Anova}} function from the \code{car} package, using the univariate Type-II test. If there are too few Ss in the data set for \code{\link[car]{Anova}} to compute its MANOVA, \code{ezAnova()} will revert to using \code{\link[stats]{aov}} for computing the ANOVA, in which case no assumption tests are provided. When assumption tests are provided via \code{\link[car]{Anova}}, Huynh-Feldt corrected p-values where the Huynh-Feldt epsilon >1 will use 1 as the correction epsilon.
 }
 \note{
-The statistical computing in \code{ezAnova()} is driven by the \code{\link[car]{Anova}} function from the \code{car} package, using the univariate Type-II test. Some column names in the output data frames are abbreviated to conserve space:
+ Some column names in the output data frames are abbreviated to conserve space:
 \itemize{
 \item{DFn}{Degrees of Freedom in the numerator (a.k.a. DFeffect).}
 \item{DFd}{Degrees of Freedom in the denominator (a.k.a. DFerror).}
@@ -62,6 +60,7 @@ The statistical computing in \code{ezAnova()} is driven by the \code{\link[car]{
 \item{F}{F-value.}
 \item{p}{p-value (probability of the null hypothesis given the data).}
 \item{p<.05}{Highlights p-values less than the traditional alpha level of .05.}
+\item{pes}{Partial Eta-Squared ( SSn/(SSn+SSd) ).}
 \item{GGe}{Greenhouse-Geisser epsilon.}
 \item{p[GGe]}{p-value after correction using Greenhouse-Geisser epsilon.}
 \item{p[GGe]<.05}{Highlights p-values (after correction using Greenhouse-Geisser epsilon) less than the traditional alpha level of .05.}

@@ -18,9 +18,9 @@ function (
 	, y_lab = NULL
 	, split_lab = NULL
 ){
-	from_descriptives = ezStats(data,dv,sid,within,between)
-	data = from_descriptives$Descriptives
-	this_ANOVA = from_descriptives$ANOVA
+	from_ezStats_main = ezStats_main(data,dv,sid,within,between)
+	data = from_ezStats_main$Descriptives
+	this_ANOVA = from_ezStats_main$ANOVA
 	if(!(x %in% within) & !(x %in% between) ){
 		stop('"x" not listed in "within" or "between".')
 	}
@@ -57,6 +57,10 @@ function (
 			if(bar_width<=0){
 				stop('"bar_width" must be > 0.')
 			}
+		}
+	}else{
+		if(!is.numeric(data[,names(data)==x])){
+			bar_width = .5
 		}
 	}
 	if(!is.null(bar_size)){
@@ -161,13 +165,6 @@ function (
 	if(!is.null(y_lab)){
 		p = p+labs(y = paste(y_lab,'\n',sep = ''))
 	}
-	return(
-		list(
-			plot=p
-			,bar_size=bar_size
-			,ANOVA=this_ANOVA
-			,Descriptives=from_descriptives$Descriptives
-		)
-	)
+	return(p)
 }
 

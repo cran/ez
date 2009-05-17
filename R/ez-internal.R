@@ -62,11 +62,11 @@ function(object){
 	test.statistic <- 1:4
 	nterms <- length(object$terms)
 	error.df <- object$error.df
-	table <- data.frame(matrix(0, nterms, 8))
+	table <- data.frame(matrix(0, nterms, 9))
 	table2 <- data.frame(matrix(0, nterms, 7))
 	table3 <- data.frame(matrix(0, nterms, 4))
 	table3[,1] <- table2[,1] <- table[,1] <- object$terms
-	colnames(table) <- c("Effect","DFn", "DFd", "SSn", "SSd", "F", "p", "p<.05")
+	colnames(table) <- c("Effect","DFn", "DFd", "SSn", "SSd", "F", "p", "p<.05", "pes")
 	colnames(table2) <- c("Effect","GGe", "p[GG]", "p[GG]<.05", "HFe", "p[HF]","p[HF]<.05")
 	colnames(table3) <- c("Effect","W", "p", "p<.05")
 	for (term in 1:nterms){
@@ -78,6 +78,7 @@ function(object){
 		gg <- GG(SSPE, P)
 		table[term, "SSn"] <- sum(diag(SSP %*% PtPinv))
 		table[term, "SSd"] <- sum(diag(SSPE %*% PtPinv))
+		table[term, "pes"] <- table[term, "SSn"] / (table[term, "SSn"] + table[term, "SSd"])
 		table[term, "DFn"] <- object$df[term] * p
 		table[term, "DFd"] <- error.df * p
 		table[term, "F"] <-  (table[term, "SSn"]/table[term, "DFn"])/
@@ -145,31 +146,81 @@ function(data, dv, sid, within, between){
 		to_return$'Levene\'s Test for Homogeneity of Variance' = ezANOVA_levene(wide_lm$lm)
 		return(to_return)
 	}else if(is.null(between)){
-		return(suppressWarnings(ezANOVA_summary(Anova(wide_lm$lm,idata=wide_lm$idata,idesign=eval(parse(text=wide_lm$idesign_formula))))))
+		to_return = NULL
+		try(to_return<-suppressWarnings(ezANOVA_summary(Anova(wide_lm$lm,idata=wide_lm$idata,idesign=eval(parse(text=wide_lm$idesign_formula))))),silent=TRUE)
+		if(is.null(to_return)){
+			warning('Too few Ss for Anova(), reverting to aov(). See "Warning" section of the help on ezANOVA.',call.=FALSE)
+			to_return=list(ANOVA=ezANOVA_aov(data, dv, sid, within, between))
+		}
+		return(to_return)
 	}else{
-		to_return = ezANOVA_summary(Anova(wide_lm$lm,idata=wide_lm$idata,idesign=eval(parse(text=wide_lm$idesign_formula))))
-		no.within = ddply(
-			data
-			,.variables = structure(as.list(c(sid,between)),class = 'quoted')
-			,function(x){
-				each(mean)(x[,names(x)==dv])
-			}
-		)
-		levene_formula = paste('mean~',paste(between,collapse='*'),sep='')
-		to_return$'Levene\'s Test for Homogeneity of Variance (collapsing cells)' = ezANOVA_levene(eval(parse(text=levene_formula)),data=no.within)
-		levene_formula = paste(dv,'~',paste(between,collapse='*'),sep='')
-		cells = ddply(
-			data
-			, within
-			,function(x){
-				ezANOVA_levene(eval(parse(text=levene_formula)),data=x)
-			}
-		)
-		to_return$'Levene\'s Test for Homogeneity of Variance (within cells)'=cells
+		to_return = NULL
+		try(to_return <- ezANOVA_summary(Anova(wide_lm$lm,idata=wide_lm$idata,idesign=eval(parse(text=wide_lm$idesign_formula)))),silent=TRUE)
+		if(is.null(to_return)){
+			warning('Too few Ss for Anova(), reverting to aov(). See "Warning" section of the help on ezANOVA.',call.=FALSE)
+			to_return=list(ANOVA=ezANOVA_aov(data, dv, sid, within, between))
+		}
 		return(to_return)
 	}
 }
 
+ezANOVA_aov <-
+function(data, dv, sid, within, between){
+	aov_formula = paste(
+		as.character(dv)
+		,'~'
+		,paste(as.character(between),collapse = '*')
+		,ifelse(is.null(between),'',ifelse(is.null(within),'','*'))
+		,paste(as.character(within),collapse = '*')
+		,ifelse(
+			is.null(within)
+			,paste(
+				'+Error('
+				,as.character(sid)
+				,')'
+				,sep = ''
+			)
+			,paste(
+				'+Error('
+				,as.character(sid)
+				,'/('
+				,paste(as.character(within),collapse = '*')
+				,'))'
+				,sep = ''
+			)
+		)
+		,sep = ''
+	)	
+	this_aov = aov(
+		formula(aov_formula)
+		,data = data
+	)
+	ANOVA = NULL
+	for(x in summary(this_aov)){
+		if(length(x)==1){
+			x=x[[1]]
+		}
+		for(row in 1:length(x[,1])){
+			if(!is.na(x$P[row])){
+				ANOVA = rbind(
+					ANOVA
+					, data.frame(
+						Effect=strsplit(row.names(x)[row],' ')[[1]][1]
+						, DFn=x$D[row]
+						, DFd=x$D[length(x$D)]
+						, SSn=x$S[row]
+						, SSd=x$S[length(x$S)]
+						, F=x$F[row]
+						, p=x$P[row]
+					)
+				)
+			}
+		}
+	}
+	ANOVA$'p<.05'=ifelse(ANOVA$p<.05,'*','')
+	ANOVA$pes = ANOVA$SSn/(ANOVA$SSn+ANOVA$SSd)
+	return(ANOVA)
+}
 
 ezPerm_aov <-
 function(data, aov_formula){
@@ -185,3 +236,90 @@ function(data, aov_formula){
 	f=f[!is.na(f)]
 	return(f)
 }
+
+ezStats_main <-
+function (
+	data
+	, dv
+	, sid
+	, within = NULL
+	, between = NULL
+){
+	if(is.null(within) & is.null(between)){
+		stop('is.null(within) & is.null(between)\nYou must specify at least one independent variable.')
+	}else{
+		if(!is.null(within) & !is.null(between)){
+			warning('Mixed within-and-between-Ss effect requested; FLSD is only appropriate for within-Ss comparisons (see warning in ?ezStats or ?ezPlot).',call.=FALSE)
+		}
+	}
+	if(!is.data.frame(data)){
+		stop('"data" must be a data frame.')
+	}
+	if(!is.numeric(data[,names(data)==dv])){
+		stop('"dv" must be numeric.')
+	}
+	if(!is.factor(data[,names(data)==sid])){
+		warning(paste('Converting "',sid,'" to factor for ANOVA.',sep=''),call.=FALSE)
+		data[,names(data)==sid]=factor(data[,names(data)==sid])
+	}
+	for(i in within){
+		if(!is.factor(data[,names(data)==i])){
+			warning(paste('Converting "',i,'" to factor for ANOVA.',sep=''),call.=FALSE)
+			data[,names(data)==i]=factor(data[,names(data)==i])
+		}
+	}
+	for(i in between){
+		if(!is.factor(data[,names(data)==i])){
+			warning(paste('Converting "',i,'" to factor for ANOVA.',sep=''),call.=FALSE)
+			data[,names(data)==i]=factor(data[,names(data)==i])
+		}
+	}
+	N = ddply(
+		cbind(data,dummy = rep(1,length(data[,1])))
+		,structure(as.list(c(.(dummy),between)),class = 'quoted')
+		,function(x){
+			to_return = length(unique(x[,names(x) == as.character(sid)]))
+			names(to_return) = 'N'
+			return(to_return)
+		}
+	)
+	N = mean(N[,length(N)])
+	data <- ddply(
+		data
+		,structure(as.list(c(sid,between,within)),class = 'quoted')
+		,function(x){
+			mean(x[,names(x) == as.character(dv)])
+		}
+	)
+	this_ANOVA = ezANOVA(
+		data = data
+		, within = within
+		, between = between
+		, sid = sid
+		, dv = .(V1)
+	)$ANOVA
+	DFd = this_ANOVA$DFd[length(this_ANOVA$DFd)]
+	MSd = this_ANOVA$SSd[length(this_ANOVA$SSd)]/DFd
+	Tcrit = qt(0.975,DFd)
+	CI = Tcrit * sqrt(MSd/N)
+	FLSD = sqrt(2) * CI
+	.variables = structure(as.list(c(between,within)),class = 'quoted')
+	data <- ddply(
+		data
+		,.variables
+		,function(x){
+			N = length(x$V1)
+			Mean = mean(x$V1)
+			SD = sd(x$V1)
+			return(c(N = N, Mean = Mean, SD = SD))
+		}
+	)
+	data$FLSD = FLSD
+	return(
+		list(
+			Descriptives = data
+			, ANOVA = this_ANOVA
+		)
+	)
+}
+

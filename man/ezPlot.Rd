@@ -85,11 +85,7 @@ Optional character string specifying the key label.
 While \code{within} and \code{between} are both optional, at least one column of \code{data} must be provided to either \code{within} or \code{between}. Any numeric or character variables in \code{data} that are specified as either \code{sid}, \code{within} or \code{between} will be converted to a factor with a warning.
 }
 \value{
-A list containing the following components:
-\item{plot}{A printable/modifiable ggplot2 object.}
-\item{bar_size}{A vector recording the size of error bars used in the plot.}
-\item{anova}{A data frame from \code{ezAnova()} containing the ANOVA for the requested effect.}
-\item{descriptives}{A data frame containing the descriptive statistics for the requested effect. N = number of Ss per cell. Mean = between-Ss mean. SD = between-Ss SD. FLSD = Fisher's Least Significant Difference.}
+A printable/modifiable ggplot2 object.
 }
 \author{
 Michael A. Lawrence \email{Mike.Lawrence@dal.ca}
@@ -151,7 +147,7 @@ group_plot = ezPlot(
 )
 
 #Show the plot.
-print(group_plot$plot)
+print(group_plot)
 
 #Plot the cue*flanker interaction.
 cue_by_flanker_plot = ezPlot(
@@ -167,7 +163,7 @@ cue_by_flanker_plot = ezPlot(
 )
 
 #Show the plot.
-print(cue_by_flanker_plot$plot)
+print(cue_by_flanker_plot)
 
 #Plot the group*cue*flanker interaction.
 group_by_cue_by_flanker_plot = ezPlot(
@@ -185,7 +181,7 @@ group_by_cue_by_flanker_plot = ezPlot(
 )
 
 #Show the plot.
-print(group_by_cue_by_flanker_plot$plot)
+print(group_by_cue_by_flanker_plot)
 
 
 }

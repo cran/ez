@@ -31,7 +31,15 @@ function(
 			data[,names(data)==i]=factor(data[,names(data)==i])
 		}
 	}
-	data=data[,names(data) %in% c(within,between,sid,dv)]
+	data <- ddply(
+		data
+		,structure(as.list(c(sid,between,within)),class = 'quoted')
+		,function(x){
+			to_return = mean(x[,names(x) == as.character(dv)])
+			names(to_return) = as.character(dv)
+			return(to_return)
+		}
+	)
 	return(ezANOVA_main(data,dv,sid,within,between))
 }
 

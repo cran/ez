@@ -34,7 +34,7 @@ Optional .() object specifying one or more columns in \code{data} that contain i
 }
 }
 \details{
-While \code{within} and \code{between} are both optional, at least one column of \code{data} must be provided to either \code{within} or \code{between}. Any numeric or character variables in \code{data} that are specified as either \code{sid}, \code{within} or \code{between} will be converted to a factor with a warning.
+While \code{within} and \code{between} are both optional, at least one column of \code{data} must be provided to either \code{within} or \code{between}. Any numeric or character variables in \code{data} that are specified as either \code{sid}, \code{within} or \code{between} will be converted to a factor with a warning. Prior to running, \code{dv} is collapsed to a mean for each cell defined by the combination of \code{sid}, \code{within} or \code{between}.
 }
 \value{
 A list containing one or more of the following components:
@@ -120,20 +120,11 @@ mean_rt_anova2 = ezANOVA(
 #Show the ANOVA & assumption tests.
 print(mean_rt_anova2)
 
-#Compute the grand mean RT per Ss.
-gmrt = ddply(
-	.data = cell_stats
-	, .variables = .( sid , group )
-	, .fun <- function(x){
-		y = mean(x$mean_rt)
-		return(c(y=y))
-	}
-)
-
 #Run a purely between-Ss ANOVA on the mean_rt data.
+##Note how ezANOVA automatically collapses the unspecified within-Ss data.
 mean_rt_anova3 = ezANOVA(
-	data = gmrt
-	, dv = .(y)
+	data = cell_stats
+	, dv = .(mean_rt)
 	, sid = .(sid)
 	, between = .(group)
 )

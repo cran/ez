@@ -1,9 +1,9 @@
-relev<-
+ezLev<-
 function(
 	x
-	,levs
+	,new_order
 ){
-	for(i in rev(levs)){
+	for(i in rev(new_order)){
 		x=relevel(x,ref=i)
 	}
 	return(x)

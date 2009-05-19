@@ -1,0 +1,13 @@
+1.3:
+- renamed "relev()" to "ezLev()" for package naming consistency
+- ezlev() parameter "levs" renamed "new_order" for clarity
+- cleaned up redundancy in ezANOVA_main code
+- added a feature whereby prior to computation, ezANOVA will collapse (using a mean) any variables not specified in "within" or "between".
+
+1.2:
+- Added "partial eta squared" column in ANOVA output
+- Where ezANOVA used to fail in the face of large total repeated measures df relative to N, it now uses an alternative approach in such cases that yields results (but no assumption tests).
+- Simplified the output of ezStats & ezPlot
+- Simplified the output of ezANOVA (removed levene tests for mixed within-and-between designs)
+- added the "relev()" command for easy reordering the levels of factors
+- implemented more reasonable default error bar hat widths when plotting categorical variables on the x-axis

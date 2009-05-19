@@ -145,17 +145,9 @@ function(data, dv, sid, within, between){
 		to_return$ANOVA = temp		
 		to_return$'Levene\'s Test for Homogeneity of Variance' = ezANOVA_levene(wide_lm$lm)
 		return(to_return)
-	}else if(is.null(between)){
-		to_return = NULL
-		try(to_return<-suppressWarnings(ezANOVA_summary(Anova(wide_lm$lm,idata=wide_lm$idata,idesign=eval(parse(text=wide_lm$idesign_formula))))),silent=TRUE)
-		if(is.null(to_return)){
-			warning('Too few Ss for Anova(), reverting to aov(). See "Warning" section of the help on ezANOVA.',call.=FALSE)
-			to_return=list(ANOVA=ezANOVA_aov(data, dv, sid, within, between))
-		}
-		return(to_return)
 	}else{
 		to_return = NULL
-		try(to_return <- ezANOVA_summary(Anova(wide_lm$lm,idata=wide_lm$idata,idesign=eval(parse(text=wide_lm$idesign_formula)))),silent=TRUE)
+		try(to_return<-suppressWarnings(ezANOVA_summary(Anova(wide_lm$lm,idata=wide_lm$idata,idesign=eval(parse(text=wide_lm$idesign_formula))))),silent=TRUE)
 		if(is.null(to_return)){
 			warning('Too few Ss for Anova(), reverting to aov(). See "Warning" section of the help on ezANOVA.',call.=FALSE)
 			to_return=list(ANOVA=ezANOVA_aov(data, dv, sid, within, between))

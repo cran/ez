@@ -1,3 +1,13 @@
+1.4:
+- removed "ezLev()" function (base function "factor()" suffices)
+- added "levels" argument to "ezPlot()" for easy reordering & renaming factor levels
+- tweaked the legend from "ezPlot()" to avoid over-plotting bug from ggplot2
+- fixed a bug in setting error bar width when the x-axis variable is converted from a factor to numeric
+- added note in "ezANOVA()" documentation indicating that tests of Sphericity will only be provided for tests of effects with >2 levels
+- added note in "ezStats()" & "ezPlot()" documentation describing the computation of FLSD
+- added warning in "ezStats_main()" to flag unbalanced designs and notify user that FLSD is computed from the mean N per group.
+- added check in "ezANOVA()" (and therefore "ezStats()" & "ezPlot()" for NA and missing cells after aggregation.
+
 1.3:
 - renamed "relev()" to "ezLev()" for package naming consistency
 - ezlev() parameter "levs" renamed "new_order" for clarity

@@ -1,11 +1,12 @@
 ezANOVA_levene <-
-function (y, ...) {
+function (y) {
 	form <- y
-	mf <- model.frame(form, ...)
+	mf <- model.frame(form)
 	if (any(sapply(2:dim(mf)[2], function(j) is.numeric(mf[[j]])))) stop("Levene's test is not appropriate with quantitative explanatory variables.")
 	y <- mf[,1]
-	if(dim(mf)[2]==2) group <- mf[,2]
-	else {
+	if(dim(mf)[2]==2) {
+		group <- mf[,2]
+	}else {
 		if (length(grep("\\+ | \\| | \\^ | \\:",form))>0) stop("Model must be completely crossed formula only.")
 		group <- interaction(mf[,2:dim(mf)[2]])
 	}
@@ -275,34 +276,40 @@ function (
 			return(to_return)
 		}
 	)
-	N = mean(N[,length(N)])
-	data <- ddply(
-		data
-		,structure(as.list(c(sid,between,within)),class = 'quoted')
-		,function(x){
-			mean(x[,names(x) == as.character(dv)])
-		}
-	)
+	if(!all(N[,length(N)]==N[1,length(N)])){
+		warning('Unbalanced groups. Mean N will be used in computation of FLSD')
+		N = mean(N[,length(N)])
+	}
+	N = N[1,length(N)]
 	this_ANOVA = ezANOVA(
 		data = data
 		, within = within
 		, between = between
 		, sid = sid
-		, dv = .(V1)
+		, dv = dv
 	)$ANOVA
 	DFd = this_ANOVA$DFd[length(this_ANOVA$DFd)]
 	MSd = this_ANOVA$SSd[length(this_ANOVA$SSd)]/DFd
 	Tcrit = qt(0.975,DFd)
 	CI = Tcrit * sqrt(MSd/N)
 	FLSD = sqrt(2) * CI
+	data <- ddply(
+		data
+		,structure(as.list(c(sid,between,within)),class = 'quoted')
+		,function(x){
+			to_return = mean(x[,names(x) == as.character(dv)])
+			names(to_return) = as.character(dv)
+			return(to_return)
+		}
+	)
 	.variables = structure(as.list(c(between,within)),class = 'quoted')
 	data <- ddply(
 		data
 		,.variables
 		,function(x){
-			N = length(x$V1)
-			Mean = mean(x$V1)
-			SD = sd(x$V1)
+			N = length(x[,names(x) == as.character(dv)])
+			Mean = mean(x[,names(x) == as.character(dv)])
+			SD = sd(x[,names(x) == as.character(dv)])
 			return(c(N = N, Mean = Mean, SD = SD))
 		}
 	)

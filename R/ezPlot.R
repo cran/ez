@@ -17,7 +17,20 @@ function (
 	, x_lab = NULL
 	, y_lab = NULL
 	, split_lab = NULL
+	, levels = NULL
 ){
+	if(!is.null(levels)){
+		for(i in 1:length(levels)){
+			this_iv = names(levels)[i]
+			data[,names(data)==this_iv] = factor(data[,names(data)==this_iv])
+			if('new_order' %in% names(levels[[i]])){
+				data[,names(data)==this_iv] = factor(data[,names(data)==this_iv],levels=levels[[i]]$new_order)
+			}
+			if('new_names' %in% names(levels[[i]])){
+				levels(data[,names(data)==this_iv]) = levels[[i]]$new_names
+			}
+		}
+	}
 	from_ezStats_main = ezStats_main(data,dv,sid,within,between)
 	data = from_ezStats_main$Descriptives
 	this_ANOVA = from_ezStats_main$ANOVA
@@ -60,7 +73,7 @@ function (
 		}
 	}else{
 		if(!is.numeric(data[,names(data)==x])){
-			bar_width = .5
+			bar_width = .25
 		}
 	}
 	if(!is.null(bar_size)){
@@ -79,6 +92,9 @@ function (
 	data$ymax = data$Mean+bar_size/2
 	for(i in to_numeric){
 		data[,names(data) == i] = as.numeric(as.character(data[,names(data) == i]))
+		if(i==x){
+			bar_width = NULL
+		}
 	}
 	names(data)[names(data) == x] = 'x'
 	if(!is.null(split)){
@@ -104,6 +120,7 @@ function (
 				,shape = split
 			)
 		)
+		p = p+opts(legend.background = theme_rect(colour='transparent',fill='transparent'))
 		if(!is.null(split_lab)){
 			p = p+labs(colour = split_lab,shape = split_lab)
 		}

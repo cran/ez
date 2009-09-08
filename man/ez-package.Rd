@@ -22,13 +22,12 @@ This package contains several useful functions:
 \item{\code{\link{ezPerm}}}{Provides simple interface to the Permutation test.}
 \item{\code{\link{ezPlot}}}{Uses the \code{ggplot2} graphing package to generate plots for any given user-requested effect, by default producing error bars that facilitate visual post-hoc multiple comparisons.}
 \item{\code{\link{ezStats}}}{Provides between-Ss descriptive statistics for any given user-requested effect.}
-\item{\code{\link{ezLev}}}{Simple function to re-order the levels of a factor.}
 }
 }
 \author{
 Author & Maintainer: Michael A. Lawrence \email{Mike.Lawrence@dal.ca}
 }
 \seealso{
-\code{\link{ezANOVA}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezStats}}, \code{\link{ezLev}}
+\code{\link{ezANOVA}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezStats}}
 }
 \keyword{ package }

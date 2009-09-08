@@ -40,6 +40,12 @@ function(
 			return(to_return)
 		}
 	)
+	if(any(is.na(data[,names(data)==as.character(dv)]))){
+		stop('One or more cells returned NA when aggregated to a mean. Check your data.')
+	}
+	if(!all(as.data.frame(table(data[,names(data) %in% c(sid,within)]))$Freq==1)){
+		stop('One or more cells is missing data.')
+	}
 	return(ezANOVA_main(data,dv,sid,within,between))
 }
 

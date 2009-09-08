@@ -26,6 +26,7 @@ ezPlot(
 	, x_lab = NULL
 	, y_lab = NULL
 	, split_lab = NULL
+	, levels = NULL
 )
 }
 \arguments{
@@ -80,9 +81,12 @@ Optional character string specifying the y-axis label.
   \item{split_lab}{
 Optional character string specifying the key label.
 }
+  \item{levels}{
+Optional named list where each item name matches a factored column in \code{data} that needs either reordering of levels, renaming of levels, or both. Each item should be a list containing named elements \code{new_order} or \code{new_names} or both.
+}
 }
 \details{
-While \code{within} and \code{between} are both optional, at least one column of \code{data} must be provided to either \code{within} or \code{between}. Any numeric or character variables in \code{data} that are specified as either \code{sid}, \code{within} or \code{between} will be converted to a factor with a warning.
+While \code{within} and \code{between} are both optional, at least one column of \code{data} must be provided to either \code{within} or \code{between}. Any numeric or character variables in \code{data} that are specified as either \code{sid}, \code{within} or \code{between} will be converted to a factor with a warning. Fisher's Least Significant Difference is computed as sqrt(2)*qt(.975,DFd)*sqrt(MSd/N), where N is taken as the mean N per group in cases of unbalanced designs.
 }
 \value{
 A printable/modifiable ggplot2 object.
@@ -183,5 +187,26 @@ group_by_cue_by_flanker_plot = ezPlot(
 #Show the plot.
 print(group_by_cue_by_flanker_plot)
 
+#Re-plot the main effect of group, using the levels
+##argument to re-arrange/rename levels of group
+group_plot = ezPlot(
+	data = cell_stats
+	, dv = .(mean_rt)
+	, sid = .(sid)
+	, between = .(group)
+	, x = .(group)
+	, do_lines = FALSE
+	, x_lab = 'Group'
+	, y_lab = 'RT (ms)'
+	, levels = list(
+		group = list(
+			new_order = c('Treatment','Control')
+			, new_names = c('Treatment\nGroup','Control\nGroup')
+		)
+	)
+)
+
+#Show the plot.
+print(group_plot)
 
 }

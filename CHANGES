@@ -1,3 +1,6 @@
+1.4.1:
+- fixed bug in "ezStats_main()" that caused "ezStats()" and "ezPlot()" to fail when groups are uneven
+
 1.4:
 - removed "ezLev()" function (base function "factor()" suffices)
 - added "levels" argument to "ezPlot()" for easy reordering & renaming factor levels

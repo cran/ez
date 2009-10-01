@@ -1,8 +1,8 @@
 Package: ez
 Type: Package
 Title: Easy analysis and visualization of factorial experiments.
-Version: 1.4
-Date: 2009-9-8
+Version: 1.4.1
+Date: 2009-10-01
 Author: Michael A. Lawrence
 Maintainer: Michael A. Lawrence <Mike.Lawrence@dal.ca>
 Depends: R (>= 2.9.0), car (>= 1.2-15), reshape (>= 0.8.3), plyr (>=
@@ -15,6 +15,6 @@ Description: This package facilitates easy analysis of factorial
         permutation tests, and visualization of results.
 License: GPL-3
 LazyLoad: yes
-Packaged: 2009-09-08 23:09:04 UTC; mike
+Packaged: 2009-10-01 11:20:31 UTC; mike
 Repository: CRAN
-Date/Publication: 2009-09-09 07:25:51
+Date/Publication: 2009-10-01 19:54:20

@@ -279,8 +279,9 @@ function (
 	if(!all(N[,length(N)]==N[1,length(N)])){
 		warning('Unbalanced groups. Mean N will be used in computation of FLSD')
 		N = mean(N[,length(N)])
+	}else{
+		N = N[1,length(N)]
 	}
-	N = N[1,length(N)]
 	this_ANOVA = ezANOVA(
 		data = data
 		, within = within

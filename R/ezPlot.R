@@ -63,19 +63,6 @@ function (
 	if(!is.logical(do_bars)){
 		stop('"do_bars" must be either TRUE or FALSE.')
 	}
-	if(!is.null(bar_width)){
-		if(!is.numeric(bar_width)){
-			stop('"bar_width" must be numeric.')
-		}else{
-			if(bar_width<=0){
-				stop('"bar_width" must be > 0.')
-			}
-		}
-	}else{
-		if(!is.numeric(data[,names(data)==x])){
-			bar_width = .25
-		}
-	}
 	if(!is.null(bar_size)){
 		if(!is.numeric(bar_size)){
 			stop('"bar_size" must be numeric.')
@@ -92,8 +79,18 @@ function (
 	data$ymax = data$Mean+bar_size/2
 	for(i in to_numeric){
 		data[,names(data) == i] = as.numeric(as.character(data[,names(data) == i]))
-		if(i==x){
-			bar_width = NULL
+	}
+	if(!is.null(bar_width)){
+		if(!is.numeric(bar_width)){
+			stop('"bar_width" must be numeric.')
+		}else{
+			if(bar_width<=0){
+				stop('"bar_width" must be > 0.')
+			}
+		}
+	}else{
+		if(!is.numeric(data[,names(data)==x])){
+			bar_width = .25
 		}
 	}
 	names(data)[names(data) == x] = 'x'

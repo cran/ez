@@ -14,6 +14,7 @@ ezPlot(
 	, sid
 	, within = NULL
 	, between = NULL
+	, between_full = NULL
 	, x
 	, do_lines = TRUE
 	, do_bars = TRUE
@@ -44,6 +45,9 @@ Optional .() object specifying the column(s) in \code{data} that contains indepe
 }
   \item{between}{
 Optional .() object specifying the column(s) in \code{data} that contains independent variables that are manipulated between-Ss. Values in this column will be converted to factor class if necessary.
+}
+  \item{between_full}{
+Same as \code{between}, but must specify the full set of between-Ss variables if \code{between} specifies only a subset of the design.
 }
   \item{x}{
 .() object specifying the variable to plot on the x-axis.

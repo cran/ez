@@ -1,3 +1,6 @@
+1.5:
+- fixed a bug whereby FLSD was computed improperly when requesting stats/plots including a less-than-complete set of between-Ss variables. The solution requires specification of the full set of between-Ss variables in addition to the less-than-complete set for which stats/plots are requested.
+
 1.4.2:
 - fixed a persisting bug in setting error bar width when the x-axis variable is converted from factor to numeric
 

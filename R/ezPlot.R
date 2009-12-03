@@ -5,6 +5,7 @@ function (
 	, sid
 	, within = NULL
 	, between = NULL
+	, between_full = NULL
 	, x
 	, do_lines = TRUE
 	, do_bars = TRUE
@@ -31,7 +32,7 @@ function (
 			}
 		}
 	}
-	from_ezStats_main = ezStats_main(data,dv,sid,within,between)
+	from_ezStats_main = ezStats_main(data,dv,sid,within,between,between_full)
 	data = from_ezStats_main$Descriptives
 	this_ANOVA = from_ezStats_main$ANOVA
 	if(!(x %in% within) & !(x %in% between) ){

@@ -237,6 +237,7 @@ function (
 	, sid
 	, within = NULL
 	, between = NULL
+	, between_full = NULL
 ){
 	if(is.null(within) & is.null(between)){
 		stop('is.null(within) & is.null(between)\nYou must specify at least one independent variable.')
@@ -261,7 +262,7 @@ function (
 			data[,names(data)==i]=factor(data[,names(data)==i])
 		}
 	}
-	for(i in between){
+	for(i in unique(c(between,between_full))){
 		if(!is.factor(data[,names(data)==i])){
 			warning(paste('Converting "',i,'" to factor for ANOVA.',sep=''),call.=FALSE)
 			data[,names(data)==i]=factor(data[,names(data)==i])
@@ -282,10 +283,15 @@ function (
 	}else{
 		N = N[1,length(N)]
 	}
+	if(is.null(between_full)){
+		temp_between = between
+	}else{
+		temp_between = between_full
+	}
 	this_ANOVA = ezANOVA(
 		data = data
 		, within = within
-		, between = between
+		, between = temp_between
 		, sid = sid
 		, dv = dv
 	)$ANOVA

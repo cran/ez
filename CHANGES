@@ -1,3 +1,6 @@
+1.5.1:
+- fixed a bug whereby removing a Ss from the data prior to analysis would yield a "One or more cells missing data" error if the Ss variable was factored before removing the Ss.
+
 1.5:
 - fixed a bug whereby FLSD was computed improperly when requesting stats/plots including a less-than-complete set of between-Ss variables. The solution requires specification of the full set of between-Ss variables in addition to the less-than-complete set for which stats/plots are requested.
 

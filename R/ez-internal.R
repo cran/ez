@@ -252,9 +252,20 @@ function (
 	if(!is.numeric(data[,names(data)==dv])){
 		stop('"dv" must be numeric.')
 	}
+	vars = as.character(c(dv,sid,between,within))
+	for(var in vars){
+		if(!(var %in% names(data))){
+			stop(paste('"',var,'" is not a variable in "',data,'".',sep=''))			
+		}
+	}
 	if(!is.factor(data[,names(data)==sid])){
 		warning(paste('Converting "',sid,'" to factor for ANOVA.',sep=''),call.=FALSE)
 		data[,names(data)==sid]=factor(data[,names(data)==sid])
+	}else{
+		if(length(unique(data[,names(data)==sid]))!=length(levels(data[,names(data)==sid]))){
+			warning(paste('You have removed one or more Ss from the analysis. Refactoring "',sid,'" for ANOVA.',sep=''),call.=FALSE)
+			data[,names(data)==sid]=factor(data[,names(data)==sid])
+		}
 	}
 	for(i in within){
 		if(!is.factor(data[,names(data)==i])){
@@ -262,10 +273,25 @@ function (
 			data[,names(data)==i]=factor(data[,names(data)==i])
 		}
 	}
-	for(i in unique(c(between,between_full))){
+	for(i in between){
 		if(!is.factor(data[,names(data)==i])){
 			warning(paste('Converting "',i,'" to factor for ANOVA.',sep=''),call.=FALSE)
 			data[,names(data)==i]=factor(data[,names(data)==i])
+		}
+		levs = levels(data[,names(data)==i])
+		if(length(levs)==1){
+			stop(paste('Grouping variable "',i,'" has only one level.',sep=''))	
+		}else{
+			for(j in levs){
+				if(!any(data[,names(data)==i]==j)){
+					if(length(levs)==2){
+						stop(paste('Group "',j,'" in "',i,'" has no members and there are only 2 groups specified by "',i,'".',sep=''))			
+					}else{
+						warning(paste('Group "',j,'" in "',i,'" has no members; removing group "',j,'" from the analysis.',sep=''),call.=FALSE)
+						data[,names(data)==i]=factor(data[,names(data)==i])					
+					}
+				}
+			}
 		}
 	}
 	N = ddply(

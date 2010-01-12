@@ -11,8 +11,8 @@ This package facilitates easy analysis of factorial experiments, including purel
 \tabular{ll}{
 Package: \tab ez\cr
 Type: \tab Package\cr
-Version: \tab 1.3\cr
-Date: \tab 2009-05-19\cr
+Version: \tab 1.5\cr
+Date: \tab 2009-12-03\cr
 License: \tab GPL-3\cr
 LazyLoad: \tab yes\cr
 }

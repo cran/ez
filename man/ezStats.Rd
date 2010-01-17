@@ -15,6 +15,7 @@ ezStats(
 	, within = NULL
 	, between = NULL
 	, between_full = NULL
+	, collapse_within = FALSE
 )
 }
 \arguments{
@@ -36,6 +37,9 @@ Optional .() object specifying the column(s) in \code{data} that contains indepe
   \item{between_full}{
 Same as \code{between}, but must specify the full set of between-Ss variables if \code{between} specifies only a subset of the design.
 }
+  \item{collapse_within}{
+Optional boolean to trigger the collapse of a single 2-level within-Ss varbiable to a difference score (useful when obtaining statistics for mixed within-and-between-Ss effects).
+}
 }
 \details{
 While \code{within} and \code{between} are both optional, at least one column of \code{data} must be provided to either \code{within} or \code{between}. Any numeric or character variables in \code{data} that are specified as either \code{sid}, \code{within} or \code{between} will be converted to a factor with a warning. Fisher's Least Significant Difference is computed as sqrt(2)*qt(.975,DFd)*sqrt(MSd/N), where N is taken as the mean N per group in cases of unbalanced designs.
@@ -50,7 +54,7 @@ The descriptives include Fisher's Least Significant Difference for the requested
 }
 
 \seealso{
-\code{\link{ezANOVA}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}
+\code{\link{ezANOVA}}, \code{\link{ezCor}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}
 }
 \examples{
 #Read in the ANT data (see ?ANT).

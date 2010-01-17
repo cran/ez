@@ -52,7 +52,7 @@ A list containing one or more of the following components:
 Michael A. Lawrence \email{Mike.Lawrence@dal.ca}
 }
 \seealso{
-\code{\link{ezANOVA}}, \code{\link{ezPlot}}, \code{\link{ezStats}}
+\code{\link{ezANOVA}}, \code{\link{ezCor}}, \code{\link{ezPlot}}, \code{\link{ezStats}}
 }
 \examples{
 #Read in the ANT data (see ?ANT).

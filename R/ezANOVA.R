@@ -5,6 +5,7 @@ function(
 	, sid
 	, within = NULL
 	, between = NULL
+	, collapse_within = FALSE
 ){
 	if(is.null(within) & is.null(between)){
 		stop('is.null(within) & is.null(between)\nYou must specify at least one independent variable.')
@@ -56,7 +57,7 @@ function(
 				}
 			}
 		}
-	}
+	}	
 	data <- ddply(
 		data
 		,structure(as.list(c(sid,between,within)),class = 'quoted')
@@ -71,6 +72,27 @@ function(
 	}
 	if(!all(as.data.frame(table(data[,names(data) %in% c(sid,within)]))$Freq==1)){
 		stop('One or more cells is missing data.')
+	}
+	if(collapse_within){
+		if(is.null(within)){
+			stop('When setting collapse_within=TRUE, you must provide a within-Ss variable.')
+		}else{
+			if(length(unique(data[,names(data)==as.character(within)]))!=2){
+				stop('When setting collapse_within=TRUE, you must provide a within-Ss variable with precisely 2 levels.')
+			}else{
+				warning('Collapsing the within-Ss variable to a difference score prior to computing statistics.',call.=FALSE)
+				data <- ddply(
+					data
+					,structure(as.list(c(sid,between)),class = 'quoted')
+					,function(x){
+						to_return = diff(x[,names(x) == as.character(dv)])
+						names(to_return) = as.character(dv)
+						return(to_return)
+					}
+				)
+				within = NULL
+			}
+		}
 	}
 	return(ezANOVA_main(data,dv,sid,within,between))
 }

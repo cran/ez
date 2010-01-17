@@ -14,6 +14,7 @@ ezANOVA(
 	, sid
 	, within = NULL
 	, between = NULL
+	, collapse_within = FALSE
 )
 }
 \arguments{
@@ -31,6 +32,9 @@ Optional .() object specifying one or more columns in \code{data} that contain i
 }
   \item{between}{
 Optional .() object specifying one or more columns in \code{data} that contain independent variables that are manipulated between-Ss.
+}
+  \item{collapse_within}{
+Optional boolean to trigger the collapse of a single 2-level within-Ss varbiable to a difference score (useful when seeking to test homogeniety of variance of the difference scores).
 }
 }
 \details{
@@ -71,7 +75,7 @@ The statistical computing in \code{ezAnova()} is driven by the \code{\link[car]{
 }
 }
 \seealso{
-\code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezStats}}
+\code{\link{ezCor}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezStats}}
 }
 \examples{
 #Read in the ANT data (see ?ANT).

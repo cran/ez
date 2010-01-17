@@ -28,6 +28,7 @@ ezPlot(
 	, y_lab = NULL
 	, split_lab = NULL
 	, levels = NULL
+	, collapse_within = FALSE
 )
 }
 \arguments{
@@ -88,6 +89,9 @@ Optional character string specifying the key label.
   \item{levels}{
 Optional named list where each item name matches a factored column in \code{data} that needs either reordering of levels, renaming of levels, or both. Each item should be a list containing named elements \code{new_order} or \code{new_names} or both.
 }
+  \item{collapse_within}{
+Optional boolean to trigger the collapse of a single 2-level within-Ss varbiable to a difference score (useful when plotting mixed within-and-between-Ss effects).
+}
 }
 \details{
 While \code{within} and \code{between} are both optional, at least one column of \code{data} must be provided to either \code{within} or \code{between}. Any numeric or character variables in \code{data} that are specified as either \code{sid}, \code{within} or \code{between} will be converted to a factor with a warning. Fisher's Least Significant Difference is computed as sqrt(2)*qt(.975,DFd)*sqrt(MSd/N), where N is taken as the mean N per group in cases of unbalanced designs.
@@ -104,7 +108,7 @@ The default error bars are Fisher's Least Significant Difference for the plotted
 }
 
 \seealso{
-\code{\link{ezANOVA}}, \code{\link{ezPerm}}, \code{\link{ezStats}}
+\code{\link{ezANOVA}}, \code{\link{ezCor}}, \code{\link{ezPerm}}, \code{\link{ezStats}}
 }
 \examples{
 #Read in the ANT data (see ?ANT).

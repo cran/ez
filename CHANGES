@@ -1,3 +1,9 @@
+1.6:
+- removed automatic addition of linespace to x & y axis labels.
+- fixed version number/date in documentation.
+- added feature to optionally collapse a within variable to a difference score (useful for plotting/describing mixed-between-and-within effects).
+- added ezCor() for plotting correlation matricies.
+
 1.5.1:
 - fixed a bug whereby removing a Ss from the data prior to analysis would yield a "One or more cells missing data" error if the Ss variable was factored before removing the Ss.
 

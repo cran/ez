@@ -19,6 +19,7 @@ function (
 	, y_lab = NULL
 	, split_lab = NULL
 	, levels = NULL
+	, collapse_within = FALSE
 ){
 	if(!is.null(levels)){
 		for(i in 1:length(levels)){
@@ -32,9 +33,7 @@ function (
 			}
 		}
 	}
-	from_ezStats_main = ezStats_main(data,dv,sid,within,between,between_full)
-	data = from_ezStats_main$Descriptives
-	this_ANOVA = from_ezStats_main$ANOVA
+	data = ezStats_main(data,dv,sid,within,between,between_full,collapse_within)
 	if(!(x %in% within) & !(x %in% between) ){
 		stop('"x" not listed in "within" or "between".')
 	}
@@ -175,10 +174,10 @@ function (
 		}
 	}
 	if(!is.null(x_lab)){
-		p = p+labs(x = paste('\n',x_lab,sep = ''))
+		p = p+labs(x = x_lab)
 	}
 	if(!is.null(y_lab)){
-		p = p+labs(y = paste(y_lab,'\n',sep = ''))
+		p = p+labs(y = y_lab)
 	}
 	return(p)
 }

@@ -238,12 +238,15 @@ function (
 	, within = NULL
 	, between = NULL
 	, between_full = NULL
+	, collapse_within = FALSE
 ){
 	if(is.null(within) & is.null(between)){
 		stop('is.null(within) & is.null(between)\nYou must specify at least one independent variable.')
 	}else{
 		if(!is.null(within) & !is.null(between)){
-			warning('Mixed within-and-between-Ss effect requested; FLSD is only appropriate for within-Ss comparisons (see warning in ?ezStats or ?ezPlot).',call.=FALSE)
+			if(!collapse_within){
+				warning('Mixed within-and-between-Ss effect requested; FLSD is only appropriate for within-Ss comparisons (see warning in ?ezStats or ?ezPlot).',call.=FALSE)
+			}
 		}
 	}
 	if(!is.data.frame(data)){
@@ -320,6 +323,7 @@ function (
 		, between = temp_between
 		, sid = sid
 		, dv = dv
+		, collapse_within = collapse_within
 	)$ANOVA
 	DFd = this_ANOVA$DFd[length(this_ANOVA$DFd)]
 	MSd = this_ANOVA$SSd[length(this_ANOVA$SSd)]/DFd
@@ -335,10 +339,9 @@ function (
 			return(to_return)
 		}
 	)
-	.variables = structure(as.list(c(between,within)),class = 'quoted')
 	data <- ddply(
 		data
-		,.variables
+		,structure(as.list(c(between,within)),class = 'quoted')
 		,function(x){
 			N = length(x[,names(x) == as.character(dv)])
 			Mean = mean(x[,names(x) == as.character(dv)])
@@ -347,11 +350,6 @@ function (
 		}
 	)
 	data$FLSD = FLSD
-	return(
-		list(
-			Descriptives = data
-			, ANOVA = this_ANOVA
-		)
-	)
+	return(data)
 }
 

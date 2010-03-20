@@ -1,3 +1,8 @@
+1.6.1:
+- Added check for intentional exclusion of whole levels from IVs.
+- Put check for misspecified variables (eg. not in data frame) at beginning of each command
+- fixed bug where within-Ss variables with level names containing an underscore threw an error
+
 1.6:
 - removed automatic addition of linespace to x & y axis labels.
 - fixed version number/date in documentation.

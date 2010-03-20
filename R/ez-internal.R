@@ -110,6 +110,15 @@ ezANOVA_get_wide_lm<-
 function(data, dv, sid, within, between){
 	to_return = list()
 	if(!is.null(within)){
+		for(this_within in within){
+			old_levs = levels(data[,names(data)==this_within])
+			new_levs = rep(NA,length=length(old_levs))
+			temp = strsplit(old_levs,'_')
+			for(i in 1:length(old_levs)){
+				new_levs[i] = paste(temp[[i]],collapse='.')
+			}
+			levels(data[,names(data)==this_within]) = new_levs
+		}
 		wide_formula = paste(paste(sid,paste(between,collapse='+'),sep='+'),paste(within,collapse='+'),sep='~')
 		wide=cast(data, wide_formula, value = dv)
 		to_return$idata=ldply(strsplit(names(wide)[!(names(wide) %in% c(between,sid))],'_'))
@@ -240,6 +249,12 @@ function (
 	, between_full = NULL
 	, collapse_within = FALSE
 ){
+	vars = as.character(c(dv,sid,between,within))
+	for(var in vars){
+		if(!(var %in% names(data))){
+			stop(paste('"',var,'" is not a variable in the data frame provided.',sep=''))			
+		}
+	}
 	if(is.null(within) & is.null(between)){
 		stop('is.null(within) & is.null(between)\nYou must specify at least one independent variable.')
 	}else{
@@ -255,12 +270,6 @@ function (
 	if(!is.numeric(data[,names(data)==dv])){
 		stop('"dv" must be numeric.')
 	}
-	vars = as.character(c(dv,sid,between,within))
-	for(var in vars){
-		if(!(var %in% names(data))){
-			stop(paste('"',var,'" is not a variable in "',data,'".',sep=''))			
-		}
-	}
 	if(!is.factor(data[,names(data)==sid])){
 		warning(paste('Converting "',sid,'" to factor for ANOVA.',sep=''),call.=FALSE)
 		data[,names(data)==sid]=factor(data[,names(data)==sid])
@@ -270,31 +279,18 @@ function (
 			data[,names(data)==sid]=factor(data[,names(data)==sid])
 		}
 	}
-	for(i in within){
-		if(!is.factor(data[,names(data)==i])){
-			warning(paste('Converting "',i,'" to factor for ANOVA.',sep=''),call.=FALSE)
-			data[,names(data)==i]=factor(data[,names(data)==i])
+	vars = as.character(c(between,within))
+	for(var in vars){
+		if(!is.factor(data[,names(data)==var])){
+			warning(paste('Converting "',var,'" to factor for ANOVA.',sep=''),call.=FALSE)
+			data[,names(data)==var]=factor(data[,names(data)==var])
 		}
-	}
-	for(i in between){
-		if(!is.factor(data[,names(data)==i])){
-			warning(paste('Converting "',i,'" to factor for ANOVA.',sep=''),call.=FALSE)
-			data[,names(data)==i]=factor(data[,names(data)==i])
+		if(length(unique(data[,names(data)==var]))!=length(levels(data[,names(data)==var]))){
+			warning(paste('You have removed one or more levels from variable "',var,'". Refactoring for ANOVA.',sep=''),call.=FALSE)
+			data[,names(data)==var]=factor(data[,names(data)==var])
 		}
-		levs = levels(data[,names(data)==i])
-		if(length(levs)==1){
-			stop(paste('Grouping variable "',i,'" has only one level.',sep=''))	
-		}else{
-			for(j in levs){
-				if(!any(data[,names(data)==i]==j)){
-					if(length(levs)==2){
-						stop(paste('Group "',j,'" in "',i,'" has no members and there are only 2 groups specified by "',i,'".',sep=''))			
-					}else{
-						warning(paste('Group "',j,'" in "',i,'" has no members; removing group "',j,'" from the analysis.',sep=''),call.=FALSE)
-						data[,names(data)==i]=factor(data[,names(data)==i])					
-					}
-				}
-			}
+		if(length(levels(data[,names(data)==var]))==1){
+			stop(paste('"',var,'" has only one level."',data,'".',sep=''))			
 		}
 	}
 	N = ddply(

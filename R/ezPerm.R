@@ -2,11 +2,12 @@ ezPerm <-
 function(
 	data
 	, dv
-	, sid
+	, wid
 	, within = NULL
 	, between = NULL
 	, perms
 ){
+	start = proc.time()[3]
 	if(is.null(within) & is.null(between)){
 		stop('is.null(within) & is.null(between)\nYou must specify at least one independent variable.')
 	}
@@ -27,9 +28,9 @@ function(
 			}
 		}
 	}
-	if(!is.factor(data[,names(data)==sid])){
-		warning(paste('Converting "',sid,'" to factor for ANOVA.',sep=''),call.=FALSE)
-		data[,names(data)==sid]=factor(data[,names(data)==sid])
+	if(!is.factor(data[,names(data)==wid])){
+		warning(paste('Converting "',wid,'" to factor for ANOVA.',sep=''),call.=FALSE)
+		data[,names(data)==wid]=factor(data[,names(data)==wid])
 	}
 	for(i in within){
 		if(!is.factor(data[,names(data)==i])){
@@ -43,7 +44,7 @@ function(
 			data[,names(data)==i]=factor(data[,names(data)==i])
 		}
 	}
-	data=data[,names(data) %in% c(within,between,sid,dv)]
+	data=data[,names(data) %in% c(within,between,wid,dv)]
 	cat('Permutation test progress:\n')
 	start = proc.time()[1]
 	aov_formula = paste(
@@ -56,13 +57,13 @@ function(
 			is.null(within)
 			,paste(
 				'+Error('
-				,as.character(sid)
+				,as.character(wid)
 				,')'
 				,sep = ''
 			)
 			,paste(
 				'+Error('
-				,as.character(sid)
+				,as.character(wid)
 				,'/('
 				,paste(as.character(within),collapse = '*')
 				,'))'
@@ -77,7 +78,7 @@ function(
 	if(!is.null(between)){
 		group_info = ddply(
 			sim_data
-			,.variables = structure(as.list(c(sid,between)),class='quoted')
+			,.variables = structure(as.list(c(wid,between)),class='quoted')
 			,function(x){
 				x[1,]
 			}
@@ -88,7 +89,7 @@ function(
 		for(this_within in within){
 			sim_data = ddply(
 				sim_data
-				,.variables = structure(as.list(c(sid,structure(within[within!=this_within],class='quoted'))),class='quoted')
+				,.variables = structure(as.list(c(wid,structure(within[within!=this_within],class='quoted'))),class='quoted')
 				,function(x){
 					x[,names(x)==this_within] = sample(x[,names(x)==this_within])
 					return(x)
@@ -97,14 +98,14 @@ function(
 		}
 		for(this_between in between){
 			group_info[,names(group_info)==this_between]=sample(group_info[,names(group_info)==this_between])
-			for(this_sid in sim_data[,names(sim_data)==sid]){
-				sim_data[sim_data[,names(sim_data)==sid]==this_sid,names(sim_data)==this_between] = group_info[group_info[,names(group_info)==sid]==this_sid,names(group_info)==this_between]
+			for(this_wid in sim_data[,names(sim_data)==wid]){
+				sim_data[sim_data[,names(sim_data)==wid]==this_wid,names(sim_data)==this_between] = group_info[group_info[,names(group_info)==wid]==this_wid,names(group_info)==this_between]
 			}
 		}
 		sim[,this_perm] = ezPerm_aov(sim_data,aov_formula)
 		setTxtProgressBar(pb, this_perm)
 	}
-	Effect = ezANOVA_main(data,dv,sid,within,between)$ANOVA$Effect
+	Effect = ezANOVA_main(data,dv,wid,within,between,observed=NULL,diff=NULL,reverse_diff=FALSE)$ANOVA$Effect
 	if(is.null(between)){
 		Effect = Effect[2:length(Effect)]
 	}
@@ -112,6 +113,7 @@ function(
 	perm_test$p = rowMeans(sim>=obs)
 	perm_test$'p<.05' = ifelse(perm_test$p<.05,'*','')
 	close(pb)
+	cat('Time taken for ezPerm() to complete:',round(proc.time()[3]-start),'seconds')
 	return(list('Permutation Test'=perm_test,'Test Duration' = as.vector(proc.time()[1] - start)))
 }
 

@@ -9,43 +9,47 @@ This function provides easy visualization of any given user-requested effect fro
 }
 \usage{
 ezPlot(
-	data
-	, dv
-	, sid
-	, within = NULL
-	, between = NULL
-	, between_full = NULL
-	, x
-	, do_lines = TRUE
-	, do_bars = TRUE
-	, bar_width = NULL
-	, bar_size = NULL
-	, split = NULL
-	, row = NULL
-	, col = NULL
-	, to_numeric = NULL
-	, x_lab = NULL
-	, y_lab = NULL
-	, split_lab = NULL
-	, levels = NULL
-	, collapse_within = FALSE
+    data
+    , dv
+    , wid
+    , within = NULL
+    , between = NULL
+    , between_full = NULL
+    , x
+    , do_lines = TRUE
+    , do_bars = TRUE
+    , bar_width = NULL
+    , bar_size = NULL
+    , split = NULL
+    , row = NULL
+    , col = NULL
+    , to_numeric = NULL
+    , x_lab = NULL
+    , y_lab = NULL
+    , split_lab = NULL
+    , levels = NULL
+    , diff = NULL
+    , reverse_diff = FALSE
+    , dv_levs = NULL
+    , dv_labs = NULL
+    , row_y_free = FALSE
 )
 }
 \arguments{
   \item{data}{
-Data frame containing the data to be analyzed.
+Data frame containing the data to be analyzed. OR, if multiple values are specified in \code{dv}, a list with as many element as values specified in \code{dv}, each element specifying a data frame for each \code{dv} in sequence.
 }
   \item{dv}{
-.() object specifying the column in \code{data} that contains the dependent variable. Values in this column should be of the numeric class.
+.() object specifying the column in \code{data} that contains the dependent variable. Values in this column should be of the numeric class. Multiple values will yield a plot with dv mapped to row.
 }
-  \item{sid}{
+  \item{wid}{
 .() object specifying the column in \code{data} that contains the variable specifying the case/Ss identifier. Values in this column will be converted to factor class if necessary.
 }
   \item{within}{
-Optional .() object specifying the column(s) in \code{data} that contains independent variables that are manipulated within-Ss. Values in this column will be converted to factor class if necessary.
+Optional .() object specifying the column(s) in \code{data} that contains predictor variables that are manipulated within-Ss. Values in this column will be converted to factor class if necessary.
 }
   \item{between}{
-Optional .() object specifying the column(s) in \code{data} that contains independent variables that are manipulated between-Ss. Values in this column will be converted to factor class if necessary.
+Optional .() object specifying the column(s) in \code{data} that contains predictor variables that are manipulated between-Ss. Values in this column will be converted to factor class if necessary.
 }
   \item{between_full}{
 Same as \code{between}, but must specify the full set of between-Ss variables if \code{between} specifies only a subset of the design.
@@ -89,12 +93,24 @@ Optional character string specifying the key label.
   \item{levels}{
 Optional named list where each item name matches a factored column in \code{data} that needs either reordering of levels, renaming of levels, or both. Each item should be a list containing named elements \code{new_order} or \code{new_names} or both.
 }
-  \item{collapse_within}{
-Optional boolean to trigger the collapse of a single 2-level within-Ss varbiable to a difference score (useful when plotting mixed within-and-between-Ss effects).
+  \item{diff}{
+Optional .() object specifying a 2-level within-Ss varbiable to collapse to a difference score.
+}
+  \item{reverse_diff}{
+Optional boolean to trigger reversal of the difference collapse requested by \code{diff}.
+}
+  \item{dv_levs}{
+Optional character vector specifying the factor ordering of multiple values specified in \code{dv}.
+}
+  \item{dv_labs}{
+Optional character vector specifying new factor labels for each of the multiple values specified in \code{dv}.
+}
+  \item{row_y_free}{
+Logical. If TRUE, then rows will permit different y-axis scales.
 }
 }
 \details{
-While \code{within} and \code{between} are both optional, at least one column of \code{data} must be provided to either \code{within} or \code{between}. Any numeric or character variables in \code{data} that are specified as either \code{sid}, \code{within} or \code{between} will be converted to a factor with a warning. Fisher's Least Significant Difference is computed as sqrt(2)*qt(.975,DFd)*sqrt(MSd/N), where N is taken as the mean N per group in cases of unbalanced designs.
+While \code{within} and \code{between} are both optional, at least one column of \code{data} must be provided to either \code{within} or \code{between}. Any numeric or character variables in \code{data} that are specified as either \code{wid}, \code{within} or \code{between} will be converted to a factor with a warning. Fisher's Least Significant Difference is computed as sqrt(2)*qt(.975,DFd)*sqrt(MSd/N), where N is taken as the mean N per group in cases of unbalanced designs.
 }
 \value{
 A printable/modifiable ggplot2 object.
@@ -108,113 +124,143 @@ The default error bars are Fisher's Least Significant Difference for the plotted
 }
 
 \seealso{
-\code{\link{ezANOVA}}, \code{\link{ezCor}}, \code{\link{ezPerm}}, \code{\link{ezStats}}
+	\code{\link{ANT}}, \code{\link{ANT2}}, \code{\link{ezANOVA}}, \code{\link{ezBoot}}, \code{\link{ezCor}}, \code{\link{ezDesign}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezPlotBoot}}, \code{\link{ezPrecis}}, \code{\link{ezStats}}
 }
 \examples{
 #Read in the ANT data (see ?ANT).
 data(ANT)
-
-#Show summaries of the ANT data.
 head(ANT)
-str(ANT)
-summary(ANT)
+ezPrecis(ANT)
 
-#Compute some useful statistics per cell.
-cell_stats = ddply(
-	.data = ANT
-	, .variables = .( sid , group , cue , flanker )
-	, .fun <- function(x){
-		#Compute error rate as percent.
-		error_rate = (1-mean(x$acc))*100
-		#Compute mean RT (only accurate trials).
-		mean_rt = mean(x$rt[x$acc==1])
-		#Compute SD RT (only accurate trials).
-		sd_rt = sd(x$rt[x$acc==1])
-		return(c(error_rate=error_rate,mean_rt=mean_rt,sd_rt=sd_rt))
-	}
-)
 
-#Run an ANOVA on the mean_rt data.
+#Run an ANOVA on the mean correct RT data.
 mean_rt_anova = ezANOVA(
-	data = cell_stats
-	, dv = .(mean_rt)
-	, sid = .(sid)
-	, within = .(cue,flanker)
-	, between = .(group)
+    data = ANT[ANT$error==0,]
+    , dv = .(rt)
+    , wid = .(subnum)
+    , within = .(cue,flank)
+    , between = .(group)
 )
 
 #Show the ANOVA & assumption tests.
 print(mean_rt_anova)
 
+
 #Plot the main effect of group.
 group_plot = ezPlot(
-	data = cell_stats
-	, dv = .(mean_rt)
-	, sid = .(sid)
-	, between = .(group)
-	, x = .(group)
-	, do_lines = FALSE
-	, x_lab = 'Group'
-	, y_lab = 'RT (ms)'
+    data = ANT[ANT$error==0,]
+    , dv = .(rt)
+    , wid = .(subnum)
+    , between = .(group)
+    , x = .(group)
+    , do_lines = FALSE
+    , x_lab = 'Group'
+    , y_lab = 'RT (ms)'
 )
 
 #Show the plot.
 print(group_plot)
 
-#Plot the cue*flanker interaction.
-cue_by_flanker_plot = ezPlot(
-	data = cell_stats
-	, dv = .(mean_rt)
-	, sid = .(sid)
-	, within = .(cue,flanker)
-	, x = .(flanker)
-	, split = .(cue)
-	, x_lab = 'Flanker'
-	, y_lab = 'RT (ms)'
-	, split_lab = 'Cue'
-)
-
-#Show the plot.
-print(cue_by_flanker_plot)
-
-#Plot the group*cue*flanker interaction.
-group_by_cue_by_flanker_plot = ezPlot(
-	data = cell_stats
-	, dv = .(mean_rt)
-	, sid = .(sid)
-	, within = .(cue,flanker)
-	, between = .(group)
-	, x = .(flanker)
-	, split = .(cue)
-	, col = .(group)
-	, x_lab = 'Flanker'
-	, y_lab = 'RT (ms)'
-	, split_lab = 'Cue'
-)
-
-#Show the plot.
-print(group_by_cue_by_flanker_plot)
 
 #Re-plot the main effect of group, using the levels
 ##argument to re-arrange/rename levels of group
 group_plot = ezPlot(
-	data = cell_stats
-	, dv = .(mean_rt)
-	, sid = .(sid)
-	, between = .(group)
-	, x = .(group)
-	, do_lines = FALSE
-	, x_lab = 'Group'
-	, y_lab = 'RT (ms)'
-	, levels = list(
-		group = list(
-			new_order = c('Treatment','Control')
-			, new_names = c('Treatment\nGroup','Control\nGroup')
-		)
-	)
+    data = ANT[ANT$error==0,]
+    , dv = .(rt)
+    , wid = .(subnum)
+    , between = .(group)
+    , x = .(group)
+    , do_lines = FALSE
+    , x_lab = 'Group'
+    , y_lab = 'RT (ms)'
+    , levels = list(
+        group = list(
+            new_order = c('Treatment','Control')
+            , new_names = c('Treatment\nGroup','Control\nGroup')
+        )
+    )
 )
 
 #Show the plot.
 print(group_plot)
+
+
+#Plot the cue*flank interaction.
+cue_by_flank_plot = ezPlot(
+    data = ANT[ANT$error==0,]
+    , dv = .(rt)
+    , wid = .(subnum)
+    , within = .(cue,flank)
+    , x = .(flank)
+    , split = .(cue)
+    , x_lab = 'Flanker'
+    , y_lab = 'RT (ms)'
+    , split_lab = 'Cue'
+)
+
+#Show the plot.
+print(cue_by_flank_plot)
+
+
+#Plot the cue*flank interaction by collapsing the cue effect to 
+##the difference between None & Double
+cue_by_flank_plot2 = ezPlot(
+    data = ANT[ ANT$error==0 & (ANT$cue \%in\% c('None','Double')) ,]
+    , dv = .(rt)
+    , wid = .(subnum)
+    , within = .(flank)
+    , diff = .(cue)
+    , reverse_diff = TRUE
+    , x = .(flank)
+    , x_lab = 'Flanker'
+    , y_lab = 'RT Effect (None - Double, ms)'
+)
+
+#Show the plot.
+print(cue_by_flank_plot2)
+
+
+
+#Plot the group*cue*flank interaction.
+group_by_cue_by_flank_plot = ezPlot(
+    data = ANT[ANT$error==0,]
+    , dv = .(rt)
+    , wid = .(subnum)
+    , within = .(cue,flank)
+    , between = .(group)
+    , x = .(flank)
+    , split = .(cue)
+    , col = .(group)
+    , x_lab = 'Flanker'
+    , y_lab = 'RT (ms)'
+    , split_lab = 'Cue'
+)
+
+#Show the plot.
+print(group_by_cue_by_flank_plot)
+
+
+#Plot the group*cue*flank interaction in both error rate and mean RT.
+group_by_cue_by_flank_plot_both = ezPlot(
+    data = list(
+        ANT
+        , ANT[ANT$error==0,]
+    )
+    , dv = .(error,rt)
+    , wid = .(subnum)
+    , within = .(cue,flank)
+    , between = .(group)
+    , x = .(flank)
+    , split = .(cue)
+    , col = .(group)
+    , x_lab = 'Flanker'
+    , split_lab = 'Cue'
+    , dv_labs = c('ER (\%)', 'RT (ms)')
+    , row_y_free = TRUE
+)
+
+#Show the plot.
+print(group_by_cue_by_flank_plot_both)
+
 
 }

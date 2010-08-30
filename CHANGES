@@ -1,3 +1,22 @@
+2.0-0
+- CHANGE THAT MAY BREAK MOST PREVIOUS CODE: changed argument named 'sid' to 'wid' (within identifier), which may be more descriptive and consistent with terminology elsewhere in ez.
+- added ezPrecis(), which provides a data summary that combines and improves upon the traditional summary functions (e.g. summary() and str() )
+- added ezDesign(), which provides visualization of the balance of data in a given experimental design, which is useful for diagnosing missing data and other problematic data issues.
+- added ezBoot() and ezPlotBoot(), which compute and visualize (respectively) bootstrapped confidence intervals
+- ezANOVA() now reports generalized eta-squared (instead of partial eta-squared). See reference in ?ezANOVA for description of generalized eta-squared.
+- ezANOVA()/ezStats()/ezPlot() all automatically collapse to cell means if there are multiple observations per cell.
+- ezPlot() now accepts multiple dvs, which will be plotted across multiple facet rows.
+- added "diff" and "reverse_diff" parameters to ezANOVA()/ezStats()/ezPlot() for quick visualization of interactions involving a 2-level within-Ss variable that is collapsable to a difference score.
+- added "test_alpha" parameter to ezCor(), permitting specification of a custom significance level for color-labelling correlations.
+- changed ANT data set (error instead of accuracy, wid column named subnum instead of sid, single word labels for levels of cue and flanker)
+- added ANT2 data set (a "messy" version of the ANT data set)
+- fixed bug where missing data was not properly diagnosed when dealing with purely between-Ss designs
+- fixed bug where call to Anova() failed not because there were too few Ss as reported but because variables were mistakenly left un-factored.
+- cleaned up code a bit to reduce redundancy between ezANOVA(), ezStats() and ezPlot()
+- speed-up: ezANOVA()/ezStats()/ezPlot() now run faster thanks to the new/experimental idata.frame() function from plyr version 1.0.3.
+- added stringr dependency
+- added lme4 dependency (hopefully this won't cause too many troubles!)
+
 1.6.1:
 - Added check for intentional exclusion of whole levels from IVs.
 - Put check for misspecified variables (eg. not in data frame) at beginning of each command

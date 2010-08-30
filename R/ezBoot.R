@@ -1,0 +1,168 @@
+ezBoot <-
+function(
+	data
+	, dv
+	, wid
+	, within = NULL
+	, between = NULL
+	, iterations = 1e3
+	, lmer = TRUE
+	, family = 'gaussian'
+){
+	start = proc.time()[3]
+	vars = as.character(c(dv,wid,between,within))
+	for(var in vars){
+		if(!(var %in% names(data))){
+			stop(paste('"',var,'" is not a variable in the data frame provided.',sep=''))			
+		}
+	}
+	if(is.null(within) & is.null(between)){
+		stop('is.null(within) & is.null(between)\nYou must specify at least one independent variable.')
+	}
+	if(!is.data.frame(data)){
+		stop('"data" must be a data frame.')
+	}
+	if(!is.numeric(data[,names(data)==dv])){
+		stop('"dv" must be numeric.')
+	}
+	if(!is.factor(data[,names(data)==wid])){
+		warning(paste('Converting "',wid,'" to factor for ANOVA.',sep=''),call.=FALSE)
+		data[,names(data)==wid]=factor(data[,names(data)==wid])
+	}else{
+		if(length(unique(data[,names(data)==wid]))!=length(levels(data[,names(data)==wid]))){
+			warning(paste('You have removed one or more Ss from the analysis. Refactoring "',wid,'" for ANOVA.',sep=''),call.=FALSE)
+			data[,names(data)==wid]=factor(data[,names(data)==wid])
+		}
+	}
+	vars = as.character(c(between,within))
+	for(var in vars){
+		if(!is.factor(data[,names(data)==var])){
+			warning(paste('Converting "',var,'" to factor for ANOVA.',sep=''),call.=FALSE)
+			data[,names(data)==var]=factor(data[,names(data)==var])
+		}
+		if(length(unique(data[,names(data)==var]))!=length(levels(data[,names(data)==var]))){
+			warning(paste('You have removed one or more levels from variable "',var,'". Refactoring for ANOVA.',sep=''),call.=FALSE)
+			data[,names(data)==var]=factor(data[,names(data)==var])
+		}
+		if(length(levels(data[,names(data)==var]))==1){
+			stop(paste('"',var,'" has only one level."',sep=''))			
+		}
+	}
+	names(data)[names(data)==as.character(dv)]='ezDV'
+	if(lmer){
+		if(is.null(within)){
+			formula = paste(
+				'ezDV~'
+				, paste(between,collapse='*')
+				, '+(1|'
+				, as.character(wid)
+				, ')'
+			)			
+		}else{
+			if(is.null(between)){
+				formula = paste(
+					'ezDV~'
+					, paste(within,collapse='*')
+					, '+(1|'
+					, as.character(wid)
+					, ')'
+				)
+			}else{
+				formula = paste(
+					'ezDV~'
+					, paste(between,collapse='*')
+					, '*'
+					, paste(within,collapse='*')
+					, '+(1|'
+					, as.character(wid)
+					, ')'
+				)
+			}
+		}
+		fit = lmer(
+			formula = eval(parse(text=formula))
+			, family = family
+			, data = data
+		)
+		temp = list()
+		j = 1
+		for(i in structure(as.list(c(between,within)),class = 'quoted')){
+			temp[[j]] = unique(data[,names(data)==as.character(i)])
+			j = j + 1
+		}
+		cell_means = expand.grid(temp)
+		names(cell_means) = as.character(structure(as.list(c(between,within)),class = 'quoted'))
+		cell_means$ezDV = 0
+		mm = model.matrix(terms(fit),cell_means)
+		cell_means = cell_means[,names(cell_means)!='ezDV']
+		cell_means$value = mm %*% fixef(fit)
+	}else{
+		cell_means_by_wid = ddply(
+			.data = idata.frame(data)
+			, .variables = structure(as.list(c(wid,between,within)),class = 'quoted')
+			, .fun = function(x){
+				to_return = data.frame(
+					value = mean(x$ezDV)
+				)
+				return(to_return)
+			}
+		)
+		cell_means = ddply(
+			.data = idata.frame(cell_means_by_wid)
+			, .variables = structure(as.list(c(between,within)),class = 'quoted')
+			, .fun = function(x){
+				to_return = data.frame(
+					value = mean(x$value)
+				)
+				return(to_return)
+			}
+		)
+	}
+	boots = ldply(
+		.data = 1:iterations
+		, .fun = function(x){
+			resampled_data = ezResample(data,dv,wid,within,between)
+			if(lmer){
+				fit = lmer(
+					formula = eval(parse(text=formula))
+					, family = family
+					, data = resampled_data
+				)
+				cell_means$value = mm %*% fixef(fit)
+			}else{
+				cell_means_by_wid = ddply(
+					.data = idata.frame(resampled_data)
+					, .variables = structure(as.list(c(wid,between,within)),class = 'quoted')
+					, .fun = function(x){
+						to_return = data.frame(
+							value = mean(x$ezDV)
+						)
+						return(to_return)
+					}
+				)
+				cell_means = ddply(
+					.data = idata.frame(cell_means_by_wid)
+					, .variables = structure(as.list(c(between,within)),class = 'quoted')
+					, .fun = function(x){
+						to_return = data.frame(
+							value = mean(x$value)
+						)
+						return(to_return)
+					}
+				)
+			}
+			cell_means$iteration = x
+			return(cell_means)
+		}
+		, .progress = 'text'
+	)
+	to_return = list()
+	if(lmer){
+		to_return$fit = fit
+	}
+	to_return$cells = cell_means
+	to_return$boots = boots
+	cat('Time taken for ezBoot() to complete:',round(proc.time()[3]-start),'seconds')
+	return(to_return)
+}
+

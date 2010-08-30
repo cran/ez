@@ -11,7 +11,8 @@ function(
 	, label_alpha = .5
 	, lm_colour = 'red'
 	, ci_colour = 'green'
-	, ci_alpha = .5	
+	, ci_alpha = .5
+	, test_alpha = .05
 ){
 	for(i in 1:length(data)){
 		data[,i]=(data[,i]-mean(data[,i]))/sd(data[,i])
@@ -32,7 +33,7 @@ function(
 			z=rbind(z,temp)
 			this_cor = round(cor(x,y),2)
 			this_cor.test = cor.test(x,y)
-			this_col = ifelse(this_cor.test$p.value<.05,'<.05','>.05')
+			this_col = ifelse(this_cor.test$p.value<test_alpha,'a','b')
 			this_size = (this_cor)^2
 			cor_text = ifelse(
 				this_cor==0

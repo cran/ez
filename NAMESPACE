@@ -1,1 +1,1 @@
-export('ezANOVA','ezPerm','ezPlot','ezStats','ezCor')
+export('ezANOVA','ezBoot','ezCor','ezDesign','ezPerm','ezPlot','ezPlotBoot','ezPrecis','ezStats')

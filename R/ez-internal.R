@@ -1,3 +1,47 @@
+ezResample <-
+function(
+	data
+	, dv
+	, wid
+	, within = NULL
+	, between = NULL
+){
+	if(!is.null(between)){
+		ids = daply(
+			.data = data
+			, .variables = between
+			, .fun = function(x){
+				to_return = sample(as.character(unique(x[,names(x)==as.character(wid)])),replace=T)
+				return(to_return)
+			}
+		)
+	}else{
+		ids = sample(as.character(unique(data[,names(data)==as.character(wid)])),replace=T)
+	}
+	id_list = list()
+	for(i in 1:length(ids)){
+		id_list[[i]] = list(num=i,this_id=ids[i])
+	}
+	resampled_data = ldply(
+		.data = id_list
+		, .fun = function(x){
+			to_return = data[as.character(data[,names(data)==as.character(wid)])==x$this_id,]
+			to_return[,names(to_return)==as.character(wid)] = x$num
+			return(to_return)
+		}
+	)
+	resampled_data[,names(resampled_data)==as.character(wid)] = factor(resampled_data[,names(resampled_data)==as.character(wid)])
+	to_return = ddply(
+		.data = resampled_data
+		, .variables = structure(as.list(c(wid,within)),class = 'quoted')
+		, .fun = function(x){
+ 			to_return = x[sample(1:nrow(x),nrow(x),replace=T),]
+			return(to_return)
+		}
+	)
+	return(to_return)
+}
+
 ezANOVA_levene <-
 function (y) {
 	form <- y
@@ -63,11 +107,11 @@ function(object){
 	test.statistic <- 1:4
 	nterms <- length(object$terms)
 	error.df <- object$error.df
-	table <- data.frame(matrix(0, nterms, 9))
+	table <- data.frame(matrix(0, nterms, 8))
 	table2 <- data.frame(matrix(0, nterms, 7))
 	table3 <- data.frame(matrix(0, nterms, 4))
 	table3[,1] <- table2[,1] <- table[,1] <- object$terms
-	colnames(table) <- c("Effect","DFn", "DFd", "SSn", "SSd", "F", "p", "p<.05", "pes")
+	colnames(table) <- c("Effect","DFn", "DFd", "SSn", "SSd", "F", "p", "p<.05")
 	colnames(table2) <- c("Effect","GGe", "p[GG]", "p[GG]<.05", "HFe", "p[HF]","p[HF]<.05")
 	colnames(table3) <- c("Effect","W", "p", "p<.05")
 	for (term in 1:nterms){
@@ -79,7 +123,6 @@ function(object){
 		gg <- GG(SSPE, P)
 		table[term, "SSn"] <- sum(diag(SSP %*% PtPinv))
 		table[term, "SSd"] <- sum(diag(SSPE %*% PtPinv))
-		table[term, "pes"] <- table[term, "SSn"] / (table[term, "SSn"] + table[term, "SSd"])
 		table[term, "DFn"] <- object$df[term] * p
 		table[term, "DFd"] <- error.df * p
 		table[term, "F"] <-  (table[term, "SSn"]/table[term, "DFn"])/
@@ -92,7 +135,8 @@ function(object){
 		table3[term,2:3] <- mauchly(SSPE, P, object$error.df)
 		table3[term, "p<.05"] = ifelse(table3[term, "p"]<.05,'*','')		
 	}
-	to_return$ANOVA=as.data.frame(table)
+	ANOVA = as.data.frame(table)
+	to_return$ANOVA=ANOVA
 	table3=table3[!is.na(table3$W),]
 	if (nrow(table3) > 0){
 		to_return$'Mauchly\'s Test for Sphericity'=table3
@@ -107,7 +151,7 @@ function(object){
 }
 
 ezANOVA_get_wide_lm<-
-function(data, dv, sid, within, between){
+function(data, dv, wid, within, between){
 	to_return = list()
 	if(!is.null(within)){
 		for(this_within in within){
@@ -119,11 +163,14 @@ function(data, dv, sid, within, between){
 			}
 			levels(data[,names(data)==this_within]) = new_levs
 		}
-		wide_formula = paste(paste(sid,paste(between,collapse='+'),sep='+'),paste(within,collapse='+'),sep='~')
+		wide_formula = paste(paste(wid,paste(between,collapse='+'),sep='+'),paste(within,collapse='+'),sep='~')
 		wide=cast(data, wide_formula, value = dv)
-		to_return$idata=ldply(strsplit(names(wide)[!(names(wide) %in% c(between,sid))],'_'))
-		wide_dv=data.matrix(wide[,!(names(wide) %in% c(sid,between))])
+		to_return$idata=ldply(strsplit(names(wide)[!(names(wide) %in% c(between,wid))],'_'))
 		names(to_return$idata)=within
+		for(this_within in within){
+			to_return$idata[,names(to_return$idata)==this_within] = factor(to_return$idata[,names(to_return$idata)==this_within])
+		}
+		wide_dv=data.matrix(wide[,!(names(wide) %in% c(wid,between))])
 		to_return$idesign_formula = paste('~',paste(within,collapse='*'),sep='')
 	}else{
 		wide=data
@@ -140,8 +187,113 @@ function(data, dv, sid, within, between){
 }
 
 ezANOVA_main <-
-function(data, dv, sid, within, between){
-	wide_lm = ezANOVA_get_wide_lm(data, dv, sid, within, between)
+function(data, dv, wid, within, between, observed, diff, reverse_diff){
+	vars = as.character(c(dv,wid,between,within))
+	for(var in vars){
+		if(!(var %in% names(data))){
+			stop(paste('"',var,'" is not a variable in the data frame provided.',sep=''))			
+		}
+	}
+	if(is.null(within) & is.null(between)){
+		stop('is.null(within) & is.null(between)\nYou must specify at least one independent variable.')
+	}
+	if(!is.data.frame(data)){
+		stop('"data" must be a data frame.')
+	}
+	if(!is.numeric(data[,names(data)==dv])){
+		stop('"dv" must be numeric.')
+	}
+	if(!is.factor(data[,names(data)==wid])){
+		warning(paste('Converting "',wid,'" to factor for ANOVA.',sep=''),call.=FALSE)
+		data[,names(data)==wid]=factor(data[,names(data)==wid])
+	}else{
+		if(length(unique(data[,names(data)==wid]))!=length(levels(data[,names(data)==wid]))){
+			warning(paste('You have removed one or more Ss from the analysis. Refactoring "',wid,'" for ANOVA.',sep=''),call.=FALSE)
+			data[,names(data)==wid]=factor(data[,names(data)==wid])
+		}
+	}
+	vars = as.character(c(between,within,diff))
+	for(var in vars){
+		if(!is.factor(data[,names(data)==var])){
+			warning(paste('Converting "',var,'" to factor for ANOVA.',sep=''),call.=FALSE)
+			data[,names(data)==var]=factor(data[,names(data)==var])
+		}
+		if(length(unique(data[,names(data)==var]))!=length(levels(data[,names(data)==var]))){
+			warning(paste('You have removed one or more levels from variable "',var,'". Refactoring for ANOVA.',sep=''),call.=FALSE)
+			data[,names(data)==var]=factor(data[,names(data)==var])
+		}
+		if(length(levels(data[,names(data)==var]))==1){
+			stop(paste('"',var,'" has only one level."',sep=''))			
+		}
+	}
+	if(!is.null(diff)){
+		temp <- ddply(
+			idata.frame(data)
+			,structure(as.list(c(wid,diff)),class = 'quoted')
+			,function(x){
+				to_return = 0
+				return(to_return)
+			}
+		)
+		if(!all(as.data.frame(table(temp[,names(temp) %in% c(wid,within)]))$Freq==2)){
+			stop(paste('Variable supplied to "diff" ("',as.character(diff),'") does not appear to be a within variable.',sep=''))
+		}
+	}
+	if(!is.null(diff)){
+		data[,names(data)==as.character(diff)] = factor(data[,names(data)==as.character(diff)])
+		if(length(unique(data[,names(data)==as.character(diff)]))!=2){
+			stop('The column passed as argument "diff" must have precisely 2 levels.')
+		}
+		if(reverse_diff){
+			data[,names(data)==as.character(diff)] = factor(data[,names(data)==as.character(diff)],levels=rev(levels(data[,names(data)==as.character(diff)])))
+		}
+	}
+	temp = idata.frame(cbind(data,ezDV=data[,names(data) == as.character(dv)]))
+	data <- ddply(
+		temp
+		,structure(as.list(c(wid,between,within,diff)),class = 'quoted')
+		,function(x){
+			to_return = mean(x$ezDV)
+			names(to_return) = as.character(dv)
+			return(to_return)
+		}
+	)
+	if(any(is.na(data[,names(data)==as.character(dv)]))){
+		stop('One or more cells returned NA when aggregated to a mean. Check your data.')
+	}
+	if(is.null(diff)){
+		if(!all(as.data.frame(table(data[,names(data) %in% c(wid,within)]))$Freq==1)){
+			stop('One or more cells is missing data.')
+		}
+	}else{
+		if(!all(as.data.frame(table(data[,names(data) %in% c(wid,within,diff)]))$Freq==1)){
+			#print(summary(as.data.frame(table(data[,names(data) %in% c(wid,within,diff)]))))
+			stop('One or more cells is missing data.')
+		}		
+	}
+	if(!is.null(between)){
+		if(any(as.data.frame(table(data[,names(data) %in% c(between)]))$Freq==0)){
+			stop('One or more cells is missing data.')
+		}
+	}
+	if(!is.null(diff)){
+		warning(paste('Collapsing "',as.character(diff),'" to a difference score ("',levels(data[,names(data)==as.character(diff)])[2],'"-"',levels(data[,names(data)==as.character(diff)])[1],'") prior to computing statistics.',sep=''),call.=FALSE)
+		temp = idata.frame(cbind(data,ezDV=data[,names(data) == as.character(dv)]))
+		data <- ddply(
+			temp
+			,structure(as.list(c(wid,within,between)),class = 'quoted')
+			,function(x){
+				to_return = diff(x$ezDV)
+				names(to_return) = as.character(dv)
+				return(to_return)
+			}
+		)
+		temp = names(within)
+		temp = temp[!(within %in% diff)]
+		within = within[!(within %in% diff)]
+		names(within) = temp
+	}
+	wide_lm = ezANOVA_get_wide_lm(data, dv, wid, within, between)
 	if(is.null(within)){
 		to_return = list()
 		temp = as.data.frame(Anova(wide_lm$lm))
@@ -154,20 +306,32 @@ function(data, dv, sid, within, between){
 		temp$'p<.05'=ifelse(temp$p<.05,'*','')
 		to_return$ANOVA = temp		
 		to_return$'Levene\'s Test for Homogeneity of Variance' = ezANOVA_levene(wide_lm$lm)
-		return(to_return)
 	}else{
 		to_return = NULL
 		try(to_return<-suppressWarnings(ezANOVA_summary(Anova(wide_lm$lm,idata=wide_lm$idata,idesign=eval(parse(text=wide_lm$idesign_formula))))),silent=TRUE)
 		if(is.null(to_return)){
-			warning('Too few Ss for Anova(), reverting to aov(). See "Warning" section of the help on ezANOVA.',call.=FALSE)
-			to_return=list(ANOVA=ezANOVA_aov(data, dv, sid, within, between))
+			warning('Anova() failed for some reason (maybe there are too few Ss?), trying aov()...',call.=FALSE)
+			to_return=list(ANOVA=ezANOVA_aov(data, dv, wid, within, between))
 		}
-		return(to_return)
 	}
+	if(!is.null(observed)){
+		obs = rep(F,nrow(to_return$ANOVA))
+		for(i in as.character(observed)){
+			obs = obs | str_detect(to_return$ANOVA$Effect,i)
+		}
+		obs_SSn1 = sum(to_return$ANOVA$SSn*obs)
+		obs_SSn2 = to_return$ANOVA$SSn*obs
+	}else{
+		obs_SSn1 = 0
+		obs_SSn2 = 0
+	}
+	to_return$ANOVA$ges = to_return$ANOVA$SSn/(to_return$ANOVA$SSn+sum(unique(to_return$ANOVA$SSd))+obs_SSn1-obs_SSn2)
+	to_return$data = data
+	return(to_return)
 }
 
 ezANOVA_aov <-
-function(data, dv, sid, within, between){
+function(data, dv, wid, within, between){
 	aov_formula = paste(
 		as.character(dv)
 		,'~'
@@ -178,13 +342,13 @@ function(data, dv, sid, within, between){
 			is.null(within)
 			,paste(
 				'+Error('
-				,as.character(sid)
+				,as.character(wid)
 				,')'
 				,sep = ''
 			)
 			,paste(
 				'+Error('
-				,as.character(sid)
+				,as.character(wid)
 				,'/('
 				,paste(as.character(within),collapse = '*')
 				,'))'
@@ -220,7 +384,6 @@ function(data, dv, sid, within, between){
 		}
 	}
 	ANOVA$'p<.05'=ifelse(ANOVA$p<.05,'*','')
-	ANOVA$pes = ANOVA$SSn/(ANOVA$SSn+ANOVA$SSd)
 	return(ANOVA)
 }
 
@@ -237,115 +400,5 @@ function(data, aov_formula){
 	}
 	f=f[!is.na(f)]
 	return(f)
-}
-
-ezStats_main <-
-function (
-	data
-	, dv
-	, sid
-	, within = NULL
-	, between = NULL
-	, between_full = NULL
-	, collapse_within = FALSE
-){
-	vars = as.character(c(dv,sid,between,within))
-	for(var in vars){
-		if(!(var %in% names(data))){
-			stop(paste('"',var,'" is not a variable in the data frame provided.',sep=''))			
-		}
-	}
-	if(is.null(within) & is.null(between)){
-		stop('is.null(within) & is.null(between)\nYou must specify at least one independent variable.')
-	}else{
-		if(!is.null(within) & !is.null(between)){
-			if(!collapse_within){
-				warning('Mixed within-and-between-Ss effect requested; FLSD is only appropriate for within-Ss comparisons (see warning in ?ezStats or ?ezPlot).',call.=FALSE)
-			}
-		}
-	}
-	if(!is.data.frame(data)){
-		stop('"data" must be a data frame.')
-	}
-	if(!is.numeric(data[,names(data)==dv])){
-		stop('"dv" must be numeric.')
-	}
-	if(!is.factor(data[,names(data)==sid])){
-		warning(paste('Converting "',sid,'" to factor for ANOVA.',sep=''),call.=FALSE)
-		data[,names(data)==sid]=factor(data[,names(data)==sid])
-	}else{
-		if(length(unique(data[,names(data)==sid]))!=length(levels(data[,names(data)==sid]))){
-			warning(paste('You have removed one or more Ss from the analysis. Refactoring "',sid,'" for ANOVA.',sep=''),call.=FALSE)
-			data[,names(data)==sid]=factor(data[,names(data)==sid])
-		}
-	}
-	vars = as.character(c(between,within))
-	for(var in vars){
-		if(!is.factor(data[,names(data)==var])){
-			warning(paste('Converting "',var,'" to factor for ANOVA.',sep=''),call.=FALSE)
-			data[,names(data)==var]=factor(data[,names(data)==var])
-		}
-		if(length(unique(data[,names(data)==var]))!=length(levels(data[,names(data)==var]))){
-			warning(paste('You have removed one or more levels from variable "',var,'". Refactoring for ANOVA.',sep=''),call.=FALSE)
-			data[,names(data)==var]=factor(data[,names(data)==var])
-		}
-		if(length(levels(data[,names(data)==var]))==1){
-			stop(paste('"',var,'" has only one level."',data,'".',sep=''))			
-		}
-	}
-	N = ddply(
-		cbind(data,dummy = rep(1,length(data[,1])))
-		,structure(as.list(c(.(dummy),between)),class = 'quoted')
-		,function(x){
-			to_return = length(unique(x[,names(x) == as.character(sid)]))
-			names(to_return) = 'N'
-			return(to_return)
-		}
-	)
-	if(!all(N[,length(N)]==N[1,length(N)])){
-		warning('Unbalanced groups. Mean N will be used in computation of FLSD')
-		N = mean(N[,length(N)])
-	}else{
-		N = N[1,length(N)]
-	}
-	if(is.null(between_full)){
-		temp_between = between
-	}else{
-		temp_between = between_full
-	}
-	this_ANOVA = ezANOVA(
-		data = data
-		, within = within
-		, between = temp_between
-		, sid = sid
-		, dv = dv
-		, collapse_within = collapse_within
-	)$ANOVA
-	DFd = this_ANOVA$DFd[length(this_ANOVA$DFd)]
-	MSd = this_ANOVA$SSd[length(this_ANOVA$SSd)]/DFd
-	Tcrit = qt(0.975,DFd)
-	CI = Tcrit * sqrt(MSd/N)
-	FLSD = sqrt(2) * CI
-	data <- ddply(
-		data
-		,structure(as.list(c(sid,between,within)),class = 'quoted')
-		,function(x){
-			to_return = mean(x[,names(x) == as.character(dv)])
-			names(to_return) = as.character(dv)
-			return(to_return)
-		}
-	)
-	data <- ddply(
-		data
-		,structure(as.list(c(between,within)),class = 'quoted')
-		,function(x){
-			N = length(x[,names(x) == as.character(dv)])
-			Mean = mean(x[,names(x) == as.character(dv)])
-			SD = sd(x[,names(x) == as.character(dv)])
-			return(c(N = N, Mean = Mean, SD = SD))
-		}
-	)
-	data$FLSD = FLSD
-	return(data)
 }
 

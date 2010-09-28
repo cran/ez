@@ -3,6 +3,7 @@ function(
 	data
 	, transpose = TRUE
 ){
+	cat('Data frame dimensions:',nrow(data),'rows,',ncol(data),'columns\n')
 	to_return = as.data.frame(
 		matrix(
 			NA

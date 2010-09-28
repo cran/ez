@@ -1,0 +1,15 @@
+load("/Users/mike/_/Programming/R/ez/ez/data/ANT2.rda")
+head(ANT2)
+temp = ANT2[ANT2$subnum==7,]
+summary(temp$block)
+temp$block=temp$block+3
+temp$block$rt = NA
+temp$rt = NA
+temp$errorf = NA
+temp$error = NA
+temp = temp[,1:10]
+head(temp)
+ANT2 = rbind(ANT2,temp)
+ANT2 = ANT2[order(ANT2$subnum,ANT2$block),]
+save(ANT2,file='ANT2.rda')
+?anova

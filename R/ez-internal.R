@@ -5,9 +5,10 @@ function(
 	, wid
 	, within = NULL
 	, between = NULL
+	, resample_within = NULL
 ){
 	if(!is.null(between)){
-		ids = daply(
+		ids = dlply(
 			.data = data
 			, .variables = between
 			, .fun = function(x){
@@ -15,6 +16,8 @@ function(
 				return(to_return)
 			}
 		)
+		ids = unlist(ids)
+		names(ids) = NULL
 	}else{
 		ids = sample(as.character(unique(data[,names(data)==as.character(wid)])),replace=T)
 	}
@@ -31,14 +34,18 @@ function(
 		}
 	)
 	resampled_data[,names(resampled_data)==as.character(wid)] = factor(resampled_data[,names(resampled_data)==as.character(wid)])
-	to_return = ddply(
-		.data = resampled_data
-		, .variables = structure(as.list(c(wid,within)),class = 'quoted')
-		, .fun = function(x){
- 			to_return = x[sample(1:nrow(x),nrow(x),replace=T),]
-			return(to_return)
-		}
-	)
+	if(resample_within){
+		to_return = ddply(
+			.data = resampled_data
+			, .variables = structure(as.list(c(wid,within)),class = 'quoted')
+			, .fun = function(x){
+	 			to_return = x[sample(1:nrow(x),nrow(x),replace=T),]
+				return(to_return)
+			}
+		)
+	}else{
+		to_return = resampled_data
+	}
 	return(to_return)
 }
 
@@ -314,18 +321,6 @@ function(data, dv, wid, within, between, observed, diff, reverse_diff){
 			to_return=list(ANOVA=ezANOVA_aov(data, dv, wid, within, between))
 		}
 	}
-	if(!is.null(observed)){
-		obs = rep(F,nrow(to_return$ANOVA))
-		for(i in as.character(observed)){
-			obs = obs | str_detect(to_return$ANOVA$Effect,i)
-		}
-		obs_SSn1 = sum(to_return$ANOVA$SSn*obs)
-		obs_SSn2 = to_return$ANOVA$SSn*obs
-	}else{
-		obs_SSn1 = 0
-		obs_SSn2 = 0
-	}
-	to_return$ANOVA$ges = to_return$ANOVA$SSn/(to_return$ANOVA$SSn+sum(unique(to_return$ANOVA$SSd))+obs_SSn1-obs_SSn2)
 	to_return$data = data
 	return(to_return)
 }
@@ -402,3 +397,75 @@ function(data, aov_formula){
 	return(f)
 }
 
+progress_time = function () 
+{
+	n <- 0
+	txt <- NULL
+	list(
+		init = function(x) {
+	    	txt <<- init_progress_time(max = x)
+	    	setTxtProgressBar(txt, 0)
+		}
+		, step = function() {
+	    	n <<- n + 1
+	    	setTxtProgressBar(txt, n)
+		}
+		, term = function() close(txt)
+	)
+}
+
+
+init_progress_time = function (min = 0, max = 1, initial = 0){
+	.start <- proc.time()[3]
+    .val <- initial
+    .killed <- FALSE
+    .nb <- 0L
+    .pc <- 0L
+    width <- getOption("width")
+    width <- width - 10L - 55L
+    width <- trunc(width)
+    if (max <= min) 
+        stop("must have max > min")
+    up <- function(value) {
+        if (!is.finite(value) || value < min || value > max) 
+            return()
+        .val <<- value
+		minutes = TRUE
+		if(value>0){
+			time_taken = proc.time()[3]-.start
+			time_per_value = time_taken/value
+			time_left = round((max-value)*time_per_value,0)
+			if(time_left>60){
+				time_left = round((max-value)*time_per_value/60,0)
+			}else{
+				minutes = FALSE
+			}
+		}
+        nb <- round(width * (value - min)/(max - min))
+        pc <- round(100 * (value - min)/(max - min))
+        if (nb == .nb && pc == .pc) 
+            return()
+        cat(paste(c("\r  |", rep.int(" ", width + 6)), collapse = ""))
+		if(minutes){
+	        cat(paste(c("\r  |", rep.int('=', nb), rep.int(" ", 
+	            (width - nb)), sprintf("| %3d%%", pc),' Approximately ',time_left,' minutes remaining until completion.',rep(' ',4-nchar(as.character(time_left)))), collapse = ""))
+		}else{
+			cat(paste(c("\r  |", rep.int('=', nb), rep.int(" ", 
+	            (width - nb)), sprintf("| %3d%%", pc),' Approximately ',time_left,' seconds remaining until completion.',rep(' ',4-nchar(as.character(time_left)))), collapse = ""))
+		}
+        flush.console()
+        .nb <<- nb
+        .pc <<- pc
+    }
+    getVal <- function() .val
+    kill <- function() if (!.killed) {
+		cat(paste(c("\r  |", rep.int('=', .nb), rep.int(" ", 
+            (width - .nb)), sprintf("| %3d%%", .pc),' Complete.',rep(' ',45)), collapse = ""))
+        cat("\n")
+        flush.console()
+        .killed <<- TRUE
+    }
+    if (initial > min) 
+        up(initial)
+    structure(list(getVal = getVal, up = up, kill = kill), class = "txtProgressBar")
+}

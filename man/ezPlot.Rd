@@ -97,7 +97,7 @@ Optional named list where each item name matches a factored column in \code{data
 Optional .() object specifying a 2-level within-Ss varbiable to collapse to a difference score.
 }
   \item{reverse_diff}{
-Optional boolean to trigger reversal of the difference collapse requested by \code{diff}.
+Logical. If TRUE, triggers reversal of the difference collapse requested by \code{diff}.
 }
   \item{dv_levs}{
 Optional character vector specifying the factor ordering of multiple values specified in \code{dv}.
@@ -124,7 +124,7 @@ The default error bars are Fisher's Least Significant Difference for the plotted
 }
 
 \seealso{
-	\code{\link{ANT}}, \code{\link{ANT2}}, \code{\link{ezANOVA}}, \code{\link{ezBoot}}, \code{\link{ezCor}}, \code{\link{ezDesign}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezPlotBoot}}, \code{\link{ezPrecis}}, \code{\link{ezStats}}
+    \code{\link{ANT}}, \code{\link{ANT2}}, \code{\link{ezANOVA}}, \code{\link{ezBoot}}, \code{\link{ezBootPlot}}, \code{\link{ezCor}}, \code{\link{ezDesign}}, \code{\link{ezMixed}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezPrecis}}, \code{\link{ezPredict}}, \code{\link{ezStats}}
 }
 \examples{
 #Read in the ANT data (see ?ANT).

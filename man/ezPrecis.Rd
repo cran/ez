@@ -18,7 +18,7 @@ ezPrecis(
 Data frame containing the data to be analyzed.
 }
   \item{transpose}{
-Optional boolean to trigger tranposition of the resulting summary data frame (useful when there are many columns in the original data frame, leading the untransposed summary data frame to wrap).
+Logical. If TRUE (default), triggers tranposition of the resulting summary data frame (useful when there are many columns in the original data frame, leading the untransposed summary data frame to wrap).
 }
 }
 \details{
@@ -46,7 +46,7 @@ This row reports the maximum value found in each column. If the column data is n
 Michael A. Lawrence \email{Mike.Lawrence@dal.ca}
 }
 \seealso{
-	\code{\link{ANT}}, \code{\link{ANT2}}, \code{\link{ezANOVA}}, \code{\link{ezBoot}}, \code{\link{ezCor}}, \code{\link{ezDesign}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezPlotBoot}}, \code{\link{ezPrecis}}, \code{\link{ezStats}}
+    \code{\link{ANT}}, \code{\link{ANT2}}, \code{\link{ezANOVA}}, \code{\link{ezBoot}}, \code{\link{ezBootPlot}}, \code{\link{ezCor}}, \code{\link{ezDesign}}, \code{\link{ezMixed}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezPrecis}}, \code{\link{ezPredict}}, \code{\link{ezStats}}
 }
 \examples{
 #Read in the ANT2 data (see ?ANT2).

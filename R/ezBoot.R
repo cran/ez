@@ -5,9 +5,11 @@ function(
 	, wid
 	, within = NULL
 	, between = NULL
+	, resample_within = TRUE
 	, iterations = 1e3
 	, lmer = TRUE
 	, family = 'gaussian'
+	, alarm = TRUE
 ){
 	start = proc.time()[3]
 	vars = as.character(c(dv,wid,between,within))
@@ -26,22 +28,22 @@ function(
 		stop('"dv" must be numeric.')
 	}
 	if(!is.factor(data[,names(data)==wid])){
-		warning(paste('Converting "',wid,'" to factor for ANOVA.',sep=''),call.=FALSE)
+		warning(paste('Converting "',wid,'" to factor.',sep=''),call.=FALSE)
 		data[,names(data)==wid]=factor(data[,names(data)==wid])
 	}else{
 		if(length(unique(data[,names(data)==wid]))!=length(levels(data[,names(data)==wid]))){
-			warning(paste('You have removed one or more Ss from the analysis. Refactoring "',wid,'" for ANOVA.',sep=''),call.=FALSE)
+			warning(paste('You have removed one or more Ss from the analysis. Refactoring "',wid,'".',sep=''),call.=FALSE)
 			data[,names(data)==wid]=factor(data[,names(data)==wid])
 		}
 	}
 	vars = as.character(c(between,within))
 	for(var in vars){
 		if(!is.factor(data[,names(data)==var])){
-			warning(paste('Converting "',var,'" to factor for ANOVA.',sep=''),call.=FALSE)
+			warning(paste('Converting "',var,'" to factor.',sep=''),call.=FALSE)
 			data[,names(data)==var]=factor(data[,names(data)==var])
 		}
 		if(length(unique(data[,names(data)==var]))!=length(levels(data[,names(data)==var]))){
-			warning(paste('You have removed one or more levels from variable "',var,'". Refactoring for ANOVA.',sep=''),call.=FALSE)
+			warning(paste('You have removed one or more levels from variable "',var,'". Refactoring.',sep=''),call.=FALSE)
 			data[,names(data)==var]=factor(data[,names(data)==var])
 		}
 		if(length(levels(data[,names(data)==var]))==1){
@@ -49,36 +51,29 @@ function(
 		}
 	}
 	names(data)[names(data)==as.character(dv)]='ezDV'
-	if(lmer){
-		if(is.null(within)){
-			formula = paste(
-				'ezDV~'
-				, paste(between,collapse='*')
-				, '+(1|'
-				, as.character(wid)
-				, ')'
-			)			
-		}else{
-			if(is.null(between)){
-				formula = paste(
-					'ezDV~'
-					, paste(within,collapse='*')
-					, '+(1|'
-					, as.character(wid)
-					, ')'
+	if(resample_within){
+		cell_size_per_id = ddply(
+			.data = idata.frame(data)
+			, .variables = structure(as.list(c(wid,between,within)),class = 'quoted')
+			, .fun = function(x){
+				to_return = data.frame(
+					value = nrow(x)
 				)
-			}else{
-				formula = paste(
-					'ezDV~'
-					, paste(between,collapse='*')
-					, '*'
-					, paste(within,collapse='*')
-					, '+(1|'
-					, as.character(wid)
-					, ')'
-				)
+				return(to_return)
 			}
+		)
+		if(any(cell_size_per_id$value<=1)){
+			stop(paste('There are no cells with multiple observations; please set the variable "resample_within" to FALSE.'))
 		}
+	}
+	if(lmer){
+		formula = paste(
+			'ezDV~'
+			, paste(vars,collapse='*')
+			, '+(1|'
+			, as.character(wid)
+			, ')'
+		)
 		fit = lmer(
 			formula = eval(parse(text=formula))
 			, family = family
@@ -121,7 +116,7 @@ function(
 	boots = ldply(
 		.data = 1:iterations
 		, .fun = function(x){
-			resampled_data = ezResample(data,dv,wid,within,between)
+			resampled_data = ezResample(data,dv,wid,within,between,resample_within)
 			if(lmer){
 				fit = lmer(
 					formula = eval(parse(text=formula))
@@ -154,7 +149,7 @@ function(
 			cell_means$iteration = x
 			return(cell_means)
 		}
-		, .progress = 'text'
+		, .progress = 'time'
 	)
 	to_return = list()
 	if(lmer){
@@ -162,7 +157,8 @@ function(
 	}
 	to_return$cells = cell_means
 	to_return$boots = boots
-	cat('Time taken for ezBoot() to complete:',round(proc.time()[3]-start),'seconds')
+	cat('Time taken for ezBoot() to complete:',round(proc.time()[3]-start),'seconds\n')
+	alarm()
 	return(to_return)
 }
 

@@ -12,8 +12,8 @@ This package facilitates easy analysis of factorial experiments, including purel
 \tabular{ll}{
 Package: \tab ez\cr
 Type: \tab Package\cr
-Version: \tab 2.0-0\cr
-Date: \tab 2010-08-30\cr
+Version: \tab 2.1-0\cr
+Date: \tab 2010-09-28\cr
 License: \tab GPL-3\cr
 LazyLoad: \tab yes\cr
 }
@@ -21,12 +21,14 @@ This package contains several useful functions:
 \itemize{
 \item{\code{\link{ezANOVA}}}{Provides simple interface to ANOVA, including assumption checks.}
 \item{\code{\link{ezBoot}}}{Computes bootstrap resampled cell means or lmer predictions}
+\item{\code{\link{ezBootPlot}}}{When supplied the results from a call to \code{\link{ezBoot}}, plots predictions with bootstrapped confidence intervals.}
 \item{\code{\link{ezCor}}}{Function to plot a correlation matrix with scatterplots, linear fits, and univariate density plots}
 \item{\code{\link{ezDesign}}}{Function to plot a visual representation of the balance of data given a specified experimental design. Useful for diagnosing missing data issues.}
+\item{\code{\link{ezMixed}}}{Provides tests for each fixed effect in an mixed effects model.}
 \item{\code{\link{ezPerm}}}{Provides simple interface to the Permutation test.}
 \item{\code{\link{ezPlot}}}{Uses the \code{ggplot2} graphing package to generate plots for any given user-requested effect, by default producing error bars that facilitate visual post-hoc multiple comparisons.}
-\item{\code{\link{ezPlotBoot}}}{When supplied the results from a call to \code{\link{ezBoot}}, plots predictions with bootstrapped confidence intervals.}
 \item{\code{\link{ezPrecis}}}{Provides a summary of a given data frame.}
+\item{\code{\link{ezPredict}}}{Computes predicted values from a mixed effects model.}
 \item{\code{\link{ezStats}}}{Provides between-Ss descriptive statistics for any given user-requested effect.}
 This package also contains two data sets:
 \item{\code{\link{ANT}}}{Simulated data from the Attention Network Test}
@@ -37,6 +39,6 @@ This package also contains two data sets:
 Author & Maintainer: Michael A. Lawrence \email{Mike.Lawrence@dal.ca}
 }
 \seealso{
-\code{\link{ANT}}, \code{\link{ANT2}}, \code{\link{ezANOVA}}, \code{\link{ezBoot}}, \code{\link{ezCor}}, \code{\link{ezDesign}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezPlotBoot}}, \code{\link{ezPrecis}}, \code{\link{ezStats}}
+\code{\link{ANT}}, \code{\link{ANT2}}, \code{\link{ezANOVA}}, \code{\link{ezBoot}}, \code{\link{ezBootPlot}}, \code{\link{ezCor}}, \code{\link{ezDesign}}, \code{\link{ezMixed}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezPrecis}}, \code{\link{ezPredict}}, \code{\link{ezStats}}
 }
 \keyword{ package }

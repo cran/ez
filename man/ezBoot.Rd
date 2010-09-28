@@ -5,17 +5,19 @@
 Function to compute bootstrap resampled predictions for each cell in a specified experimental design.
 }
 \description{
-This function is used to compute bootstrap resampled predictions for each cell in a specified experimental design, using either cell means or mixed effects modelling to obtain predictions. The results can be visualized using \code{\link{ezPlotBoot}}.}
+This function is used to compute bootstrap resampled predictions for each cell in a specified experimental design, using either cell means or mixed effects modelling to obtain predictions. The results can be visualized using \code{\link{ezBootPlot}}.}
 \usage{
 ezBoot(
-    data
-    , dv
-    , wid
-    , within = NULL
-    , between = NULL
-    , iterations = 1e3
-    , lmer = TRUE
-    , family = 'gaussian'
+	data
+	, dv
+	, wid
+	, within = NULL
+	, between = NULL
+	, resample_within = TRUE
+	, iterations = 1e3
+	, lmer = TRUE
+	, family = 'gaussian'
+	, alarm = TRUE
 )
 }
 \arguments{
@@ -34,14 +36,20 @@ Optional .() object specifying one or more columns in \code{data} that contain p
   \item{between}{
 Optional .() object specifying one or more columns in \code{data} that contain predictor variables that are manipulated (or observed) between-Ss.
 }
+  \item{resample_within}{
+Logical value specifying whether to resample within each cell of the design within each wid unit. If there is only one observation per such cells, then this should be set to FALSE to avoid useless computation.
+}
   \item{iterations}{
 Numeric value specifying the number of bootstrap iterations to complete.
 }
   \item{lmer}{
-Boolean specifying whether to obtain predictions via mixed effects modelling (TRUE; default) or via cell means (FALSE).
+Logical. If TRUE (default), predictions are obtained via mixed effects modelling; if FALSE predictions are obtained via cell means.
 }
   \item{family}{
 When obtaining predictions via mixed effects modelling (i.e. when \code{lmer=TRUE}), you must specify the residuals family. While the bootstrap is in theory non-parametric, it may be more powerful if you specify a family that might reasonably expected to match your data. For example, if the data are binary outcomes (eg. accuracy), then use the "binomial" family. See \code{\link[lme4]{lmer}}.
+}
+  \item{alarm}{
+Logical. If TRUE (default), call the \code{\link[utils]{alarm}} function when \code{\link{ezBoot}} completes.
 }
 }
 \details{
@@ -57,7 +65,7 @@ A list containing either two or three components:
 Michael A. Lawrence \email{Mike.Lawrence@dal.ca}
 }
 \seealso{
-	\code{\link[lme4]{lmer}}, \code{\link{ANT}}, \code{\link{ANT2}}, \code{\link{ezANOVA}}, \code{\link{ezBoot}}, \code{\link{ezCor}}, \code{\link{ezDesign}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezPlotBoot}}, \code{\link{ezPrecis}}, \code{\link{ezStats}}
+    \code{\link[lme4]{lmer}}, \code{\link{ANT}}, \code{\link{ANT2}}, \code{\link{ezANOVA}}, \code{\link{ezBoot}}, \code{\link{ezBootPlot}}, \code{\link{ezCor}}, \code{\link{ezDesign}}, \code{\link{ezMixed}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezPrecis}}, \code{\link{ezPredict}}, \code{\link{ezStats}}
 }
 \examples{
 #Read in the ANT data (see ?ANT).
@@ -81,21 +89,21 @@ er$cells$value = 100*plogis(er$cells$value)
 er$boots$value = 100*plogis(er$boots$value)
 
 #plot the full design
-from_ezPlotBoot = ezPlotBoot(
-	from_ezBoot = er
-	, x = .(flank)
-	, split = .(cue)
-	, col = .(group)
+from_ezBootPlot = ezBootPlot(
+    from_ezBoot = er
+    , x = .(flank)
+    , split = .(cue)
+    , col = .(group)
 )
-print(from_ezPlotBoot$plot)
+print(from_ezBootPlot$plot)
 
 #plot the effect of group across the flank*cue design
-from_ezPlotBoot = ezPlotBoot(
-	from_ezBoot = er
-	, x = .(flank)
-	, split = .(cue)
-	, diff = .(group)
+from_ezBootPlot = ezBootPlot(
+    from_ezBoot = er
+    , x = .(flank)
+    , split = .(cue)
+    , diff = .(group)
 )
-print(from_ezPlotBoot$plot)
+print(from_ezBootPlot$plot)
 
 }

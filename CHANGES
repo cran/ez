@@ -1,3 +1,16 @@
+2.1-0
+- fixed bug in ezBoot() (really attributable to ezResample() ) that caused an error when multiple between variables are supplied.
+- added option to ezBoot() to toggle resampling within the wid units (some suggest that such resampling yields CIs that are too wide)
+- fixed warning messages in ezBoot() so they now no longer refer to ANOVA.
+- added time estimation to the ezBoot() and ezPerm() functions.
+- changed name of ezPlotBoot() to ezBootPlot()
+- added "confidence" argument to ezBootPlot() to permit plotting arbitrary/multiple confidence intervals.
+- added ezMixed() function, which provides the output (p-value, likelihood ratios) of tests for each fixed effect in an lmer model against its respective null using anova().
+- added ezPredict() function, which provides computation of predicted values from an lmer mixed effects model.
+- reduced detail in default output of ezANOVA(), added "detailed" argument for ezANOVA() that returns everything
+- added report of data frame dimensions in output of ezPrecis()
+- added NA rows to subnum7 in the ANT2 data set
+
 2.0-0
 - CHANGE THAT MAY BREAK MOST PREVIOUS CODE: changed argument named 'sid' to 'wid' (within identifier), which may be more descriptive and consistent with terminology elsewhere in ez.
 - added ezPrecis(), which provides a data summary that combines and improves upon the traditional summary functions (e.g. summary() and str() )

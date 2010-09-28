@@ -1,6 +1,7 @@
-ezPlotBoot <-
+ezBootPlot <-
 function(
 	from_ezBoot
+	, confidence = .95
 	, x
 	, split = NULL
 	, row = NULL
@@ -15,6 +16,7 @@ function(
 	, diff = NULL
 	, reverse_diff = FALSE
 	, row_y_free = FALSE
+	, alarm = TRUE
 ){
 	if(!is.logical(do_lines)){
 		stop('"do_lines" must be either TRUE or FALSE.')
@@ -38,7 +40,36 @@ function(
 			}
 		}
 	}
-	cat('ezPlotBoot: Collapsing cells to requested design...')
+	if(any(confidence>=1) | any(confidence<=0)){
+		stop('"confidence" must be either greater than 0 and less than 1.')
+	}
+	for(i in to_numeric){
+		from_ezBoot$cells[,names(from_ezBoot$cells) == i] = as.numeric(as.character(from_ezBoot$cells[,names(from_ezBoot$cells) == i]))
+		from_ezBoot$boots[,names(from_ezBoot$boots) == i] = as.numeric(as.character(from_ezBoot$boots[,names(from_ezBoot$boots) == i]))
+	}
+	if(!is.null(bar_width)){
+		if(!is.numeric(bar_width)){
+			stop('"bar_width" must be numeric.')
+		}else{
+			if(any(bar_width<=0)){
+				stop('"bar_width" must be > 0.')
+			}
+		}
+		if((length(bar_width)!=1)){
+			if(length(confidence)==1){
+				stop('Too many values supplied to "bar_width".')
+			}else{
+				if(length(bar_width)!=length(confidence)){
+					stop('"bar_width" must have a length of either 1 or the same length as "confidence".')
+				}
+			}
+		}
+	}else{
+		if(!is.numeric(from_ezBoot$cells[,names(from_ezBoot$cells)==x])){
+			bar_width = .25
+		}
+	}
+	#cat('ezBootPlot: Collapsing cells to requested design...')
 	cells = ddply(
 		.data = idata.frame(from_ezBoot$cells)
 		, .variables = structure(as.list(c(x,split,row,col,diff)),class = 'quoted')
@@ -49,7 +80,7 @@ function(
 			return(to_return)
 		}
 	)
-	cat('\nezPlotBoot: Collapsing boots to requested design...')
+	#cat('\nezBootPlot: Collapsing boots to requested design...')
 	boots = ddply(
 		.data = idata.frame(from_ezBoot$boots)
 		, .variables = structure(as.list(c(x,split,row,col,diff,expression(iteration))),class = 'quoted')
@@ -71,7 +102,7 @@ function(
 				, levels = rev(levels(boots[,names(boots)==as.character(diff)]))
 			)
 		}
-		cat('\nezPlotBoot: Computing requested difference score within cells...')
+		#cat('\nezBootPlot: Computing requested difference score within cells...')
 		cells = ddply(
 			.data = cells
 			, .variables = structure(as.list(c(x,split,row,col)),class = 'quoted')
@@ -82,7 +113,7 @@ function(
 				return(to_return)
 			}
 		)
-		cat('\nezPlotBoot: Computing requested difference score within boots...')
+		#cat('\nezBootPlot: Computing requested difference score within boots...')
 		boots = ddply(
 			.data = boots
 			, .variables = structure(as.list(c(x,split,row,col,expression(iteration))),class = 'quoted')
@@ -94,33 +125,42 @@ function(
 			}
 		)	
 	}
-	cat('\nezPlotBoot: Computing confidence intervals...')
-	boot_stats = ddply(
-		.data = idata.frame(boots)
-		, .variables = structure(as.list(c(x,split,row,col)),class = 'quoted')
-		, .fun = function(x){
-			to_return = data.frame(
-				lo = quantile(x$value,.025)
-				, hi = quantile(x$value,.975)
-			)
-			return(to_return)
-		}
-	)
-	cat('\nezPlotBoot: Building plot...')
 	names(cells)[names(cells)==as.character(x)] = 'x'
-	names(boot_stats)[names(boot_stats)==as.character(x)] = 'x'
 	if(!is.null(split)){
 		names(cells)[names(cells)==as.character(split)] = 'split'
-		names(boot_stats)[names(boot_stats)==as.character(split)] = 'split'
 	}
 	if(!is.null(row)){
 		names(cells)[names(cells)==as.character(row)] = 'row'
-		names(boot_stats)[names(boot_stats)==as.character(row)] = 'row'
 	}
 	if(!is.null(col)){
 		names(cells)[names(cells)==as.character(col)] = 'col'
-		names(boot_stats)[names(boot_stats)==as.character(col)] = 'col'
 	}
+	#cat('\nezBootPlot: Computing confidence intervals...')
+	boot_stats = list()
+	for(i in 1:length(confidence)){
+		boot_stats[[i]] = ddply(
+			.data = idata.frame(boots)
+			, .variables = structure(as.list(c(x,split,row,col)),class = 'quoted')
+			, .fun = function(x){
+				to_return = data.frame(
+					lo = quantile(x$value,(1-confidence[i])/2)
+					, hi = quantile(x$value,1-(1-confidence[i])/2)
+				)
+				return(to_return)
+			}
+		)		
+		names(boot_stats[[i]])[names(boot_stats[[i]])==as.character(x)] = 'x'
+		if(!is.null(split)){
+			names(boot_stats[[i]])[names(boot_stats[[i]])==as.character(split)] = 'split'
+		}
+		if(!is.null(row)){
+			names(boot_stats[[i]])[names(boot_stats[[i]])==as.character(row)] = 'row'
+		}
+		if(!is.null(col)){
+			names(boot_stats[[i]])[names(boot_stats[[i]])==as.character(col)] = 'col'
+		}
+	}
+	#cat('\nezBootPlot: Building plot...')
 	p = ggplot(
 		data = cells
 		, mapping = aes(
@@ -153,18 +193,20 @@ function(
 				p = p+labs(linetype = split_lab)
 			}
 		}
-		p = p+geom_errorbar(
-			data = boot_stats
-			, mapping = aes(
-				colour = split
-				, ymin = lo
-				, ymax = hi
+		for(i in 1:length(confidence)){
+			p = p+geom_errorbar(
+				data = boot_stats[[i]]
+				, mapping = aes(
+					colour = split
+					, ymin = lo
+					, ymax = hi
+				)
+				, linetype = 1
+				, legend = FALSE
+				, width = bar_width[i]
+				, alpha = .5
 			)
-			, linetype = 1
-			, legend = FALSE
-			, width = bar_width
-			, alpha = .5
-		)
+		}
 	}else{
 		p = p+geom_point(
 			mapping = aes(
@@ -179,17 +221,19 @@ function(
 				)
 			)
 		}
-		p = p+geom_errorbar(
-			data = boot_stats
-			, mapping = aes(
-				, ymin = lo
-				, ymax = hi
+		for(i in 1:length(confidence)){
+			p = p+geom_errorbar(
+				data = boot_stats[[i]]
+				, mapping = aes(
+					, ymin = lo
+					, ymax = hi
+				)
+				, linetype = 1
+				, legend = FALSE
+				, width = bar_width[i]
+				, alpha = .5
 			)
-			, linetype = 1
-			, legend = FALSE
-			, width = bar_width
-			, alpha = .5
-		)
+		}
 	}
 	if(!is.null(row)){
 		if(!is.null(col)){
@@ -216,12 +260,24 @@ function(
 	if(!is.null(y_lab)){
 		p = p+labs(y = y_lab)
 	}
+	names(cells)[names(cells)=='x'] = as.character(x)
+	if(!is.null(split)){
+		names(cells)[names(cells)=='split'] = as.character(split)
+	}
+	if(!is.null(row)){
+		names(cells)[names(cells)=='row'] = as.character(row)
+	}
+	if(!is.null(col)){
+		names(cells)[names(cells)=='col'] = as.character(col)
+	}
+	
 	to_return = list()
 	to_return$plot = p
 	to_return$cells = cells
 	to_return$boots = boots
 	to_return$boot_stats = boot_stats
-	cat('\nezPlotBoot: Done.')
+	#cat('\nezBootPlot: Done.\n')
+	alarm()
 	return(to_return)
 }
 

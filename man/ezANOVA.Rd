@@ -17,6 +17,7 @@ ezANOVA(
     , observed = NULL
     , diff = NULL
     , reverse_diff = FALSE
+    , detailed = FALSE
 )
 }
 \arguments{
@@ -42,7 +43,10 @@ Optional .() object specifying one or more columns in \code{data} that contain p
 Optional .() object specifying a 2-level within-Ss varbiable to collapse to a difference score.
 }
   \item{reverse_diff}{
-Optional boolean to trigger reversal of the difference collapse requested by \code{diff}.
+Logical. If TRUE, triggers reversal of the difference collapse requested by \code{diff}.
+}
+  \item{detailed}{
+Logical. If TRUE, returns extra information (sums of squares, raw likelihood ratios, AIC & BIC values used in computing corrected likelihood ratios, etc.).
 }
 }
 \details{
@@ -63,30 +67,33 @@ Michael A. Lawrence \email{Mike.Lawrence@dal.ca}
 The statistical computing in \code{ezAnova()} is driven by the \code{\link[car]{Anova}} function from the \code{car} package, using the univariate Type-II test. If there are too few Ss in the data set for \code{\link[car]{Anova}} to compute its MANOVA, \code{ezAnova()} will revert to using \code{\link[stats]{aov}} for computing the ANOVA, in which case no assumption tests are provided. When assumption tests are provided via \code{\link[car]{Anova}}, Huynh-Feldt corrected p-values where the Huynh-Feldt epsilon >1 will use 1 as the correction epsilon.
 }
 \note{
- Some column names in the output data frames are abbreviated to conserve space:
-\itemize{
-\item{DFn}{Degrees of Freedom in the numerator (a.k.a. DFeffect).}
-\item{DFd}{Degrees of Freedom in the denominator (a.k.a. DFerror).}
-\item{SSn}{Sum of Squares in the numerator (a.k.a. SSeffect).}
-\item{SSd}{Sum of Squares in the denominator (a.k.a. SSerror).}
-\item{F}{F-value.}
-\item{p}{p-value (probability of the null hypothesis given the data).}
-\item{p<.05}{Highlights p-values less than the traditional alpha level of .05.}
-\item{ges}{Generalized Eta-Squared (see in references below: Bakeman, 2005) equal to SSn divided by: The effect's SSn plus all unique SSd's in the ANOVA plus all SSn's for effects involving observed variables minus SSn for the effect if the effect involves an observed variable. }
-\item{GGe}{Greenhouse-Geisser epsilon.}
-\item{p[GGe]}{p-value after correction using Greenhouse-Geisser epsilon.}
-\item{p[GGe]<.05}{Highlights p-values (after correction using Greenhouse-Geisser epsilon) less than the traditional alpha level of .05.}
-\item{HFe}{Huynh-Feldt epsilon.}
-\item{p[HFe]}{p-value after correction using Huynh-Feldt epsilon.}
-\item{p[HFe]<.05}{Highlights p-values (after correction using Huynh-Feldt epsilon) less than the traditional alpha level of .05.}
-\item{W}{Mauchly's W statistic}
+Some column names in the output data frames are abbreviated to conserve space:
+\tabular{ll}{
+DFn \tab Degrees of Freedom in the numerator (a.k.a. DFeffect).\cr
+DFd \tab Degrees of Freedom in the denominator (a.k.a. DFerror).\cr
+SSn \tab Sum of Squares in the numerator (a.k.a. SSeffect).\cr
+SSd \tab Sum of Squares in the denominator (a.k.a. SSerror).\cr
+F \tab F-value.\cr
+p \tab p-value (probability of the null hypothesis given the data).\cr
+p<.05 \tab Highlights p-values less than the traditional alpha level of .05.\cr
+ges \tab Generalized Eta-Squared measure of effect size (see in references below: Bakeman, 2005).\cr
+GGe \tab Greenhouse-Geisser epsilon.\cr
+p[GGe] \tab p-value after correction using Greenhouse-Geisser epsilon.\cr
+p[GGe]<.05 \tab Highlights p-values (after correction using Greenhouse-Geisser epsilon) less than the traditional alpha level of .05.\cr
+HFe \tab Huynh-Feldt epsilon.\cr
+p[HFe] \tab p-value after correction using Huynh-Feldt epsilon.\cr
+p[HFe]<.05 \tab Highlights p-values (after correction using Huynh-Feldt epsilon) less than the traditional alpha level of .05.\cr
+W \tab Mauchly's W statistic
 }
 }
 \references{
-Bakeman, R. (2005). Recommended effect size statistics for repeated measures designs. Behavior Research Methods, 37 (3), 379-384.
+\itemize{
+\item Bakeman, R. (2005). Recommended effect size statistics for repeated measures designs. Behavior Research Methods, 37 (3), 379-384.
+\item Glover S, Dixon P. (2004) Likelihood ratios: a simple and flexible statistic for empirical psychologists. Psychonomic bulletin & review, 11 (5), 791-806.
+}
 }
 \seealso{
-	\code{\link{ANT}}, \code{\link{ANT2}}, \code{\link{ezANOVA}}, \code{\link{ezBoot}}, \code{\link{ezCor}}, \code{\link{ezDesign}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezPlotBoot}}, \code{\link{ezPrecis}}, \code{\link{ezStats}}
+    \code{\link{ANT}}, \code{\link{ANT2}}, \code{\link{ezANOVA}}, \code{\link{ezBoot}}, \code{\link{ezBootPlot}}, \code{\link{ezCor}}, \code{\link{ezDesign}}, \code{\link{ezMixed}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezPrecis}}, \code{\link{ezPredict}}, \code{\link{ezStats}}
 }
 \examples{
 #Read in the ANT data (see ?ANT).

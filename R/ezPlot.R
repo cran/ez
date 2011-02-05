@@ -21,6 +21,7 @@ function (
 	, levels = NULL
 	, diff = NULL
 	, reverse_diff = FALSE
+	, type = 2
 	, dv_levs = NULL
 	, dv_labs = NULL
 	, row_y_free = FALSE
@@ -112,7 +113,17 @@ function (
 				data_combined = rbind(
 					data_combined
 					, cbind(
-						ezStats(data[[this_dv]],this_dot_dv,wid,within,between,between_full,diff,reverse_diff)
+						ezStats(
+							data = data[[this_dv]]
+							, dv = this_dot_dv
+							, wid = wid
+							, within = within
+							, between = between
+							, between_full = between_full
+							, diff = diff
+							, reverse_diff = reverse_diff
+							, type = type
+						)
 						, dv = as.character(dv[this_dv])
 					)
 				)
@@ -120,7 +131,17 @@ function (
 				data_combined = rbind(
 					data_combined
 					, cbind(
-						ezStats(data,this_dot_dv,wid,within,between,between_full,diff,reverse_diff)
+						ezStats(
+							data = data[[this_dv]]
+							, dv = this_dot_dv
+							, wid = wid
+							, within = within
+							, between = between
+							, between_full = between_full
+							, diff = diff
+							, reverse_diff = reverse_diff
+							, type = type
+						)
 						, dv = as.character(dv[this_dv])
 					)
 				)

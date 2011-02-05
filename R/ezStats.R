@@ -8,6 +8,7 @@ function (
 	, between_full = NULL
 	, diff = NULL
 	, reverse_diff = FALSE
+	, type = 2
 ){
 	#get information for FLSD
 	if(is.null(between_full)){
@@ -17,13 +18,16 @@ function (
 	}
 	from_ezANOVA_main = ezANOVA_main(
 		data = data
+		, dv = dv
+		, wid = wid
 		, within = within
 		, between = temp_between
-		, wid = wid
-		, dv = dv
 		, observed = NULL
 		, diff = diff
 		, reverse_diff = reverse_diff
+		, type = type
+		, white.adjust = FALSE
+		, return_aov = FALSE
 	)
 	this_ANOVA = from_ezANOVA_main$ANOVA
 	data = from_ezANOVA_main$data

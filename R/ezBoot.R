@@ -116,40 +116,46 @@ function(
 	boots = ldply(
 		.data = 1:iterations
 		, .fun = function(x){
-			resampled_data = ezResample(data,dv,wid,within,between,resample_within)
-			if(lmer){
-				fit = lmer(
-					formula = eval(parse(text=formula))
-					, family = family
-					, data = resampled_data
-				)
-				cell_means$value = mm %*% fixef(fit)
-			}else{
-				cell_means_by_wid = ddply(
-					.data = idata.frame(resampled_data)
-					, .variables = structure(as.list(c(wid,between,within)),class = 'quoted')
-					, .fun = function(x){
-						to_return = data.frame(
-							value = mean(x$ezDV)
-						)
-						return(to_return)
-					}
-				)
-				cell_means = ddply(
-					.data = idata.frame(cell_means_by_wid)
-					, .variables = structure(as.list(c(between,within)),class = 'quoted')
-					, .fun = function(x){
-						to_return = data.frame(
-							value = mean(x$value)
-						)
-						return(to_return)
-					}
-				)
+			done = FALSE
+			while(!done){
+				resampled_data = ezResample(data,dv,wid,within,between,resample_within)
+				if(lmer){
+					fit = lmer(
+						formula = eval(parse(text=formula))
+						, family = family
+						, data = resampled_data
+					)
+					cell_means$value = mm %*% fixef(fit)
+				}else{
+					cell_means_by_wid = ddply(
+						.data = idata.frame(resampled_data)
+						, .variables = structure(as.list(c(wid,between,within)),class = 'quoted')
+						, .fun = function(x){
+							to_return = data.frame(
+								value = mean(x$ezDV)
+							)
+							return(to_return)
+						}
+					)
+					cell_means = ddply(
+						.data = idata.frame(cell_means_by_wid)
+						, .variables = structure(as.list(c(between,within)),class = 'quoted')
+						, .fun = function(x){
+							to_return = data.frame(
+								value = mean(x$value)
+							)
+							return(to_return)
+						}
+					)
+				}
+				if(all(is.finite(cell_means$value))){
+					done = TRUE
+				}
 			}
 			cell_means$iteration = x
 			return(cell_means)
 		}
-		, .progress = 'time'
+		, .progress = 'timeCI'
 	)
 	to_return = list()
 	if(lmer){
@@ -157,7 +163,6 @@ function(
 	}
 	to_return$cells = cell_means
 	to_return$boots = boots
-	cat('Time taken for ezBoot() to complete:',round(proc.time()[3]-start),'seconds\n')
 	alarm()
 	return(to_return)
 }

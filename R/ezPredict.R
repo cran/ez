@@ -2,43 +2,63 @@ ezPredict <-
 function(
 	fit
 	, to_predict = NULL
-	, numeric_res = 1e3
+	, numeric_res = 0
 ){
 	data = attr(fit,'frame')
-	vars = attr(attr(data,'terms'),'variables')
+	vars = as.character(attr(attr(data,'terms'),'variables'))
 	dv = as.character(vars[2])
 	if(is.null(to_predict)){
-		fixed = rep(NA,length(vars)-3)
+		if(length(grep('poly(',vars,fixed=TRUE))>0){
+			stop('Cannot auto-create "to_predict" when the fitted model contains poly(). Please provide a data frame to the "to_return" argument.')
+		}
+		vars = vars[3:length(vars)]
+		keep = rep(T,length(vars))
+		if(length(vars)>1){
+			for(i in 1:length(vars)){
+				if(any(str_detect(vars[i],vars[(1:length(vars))!=i]))){
+					if(grep('I(',vars[i],fixed=T)){
+						keep[i] = FALSE						
+					}
+				}
+			}
+		}
+		data_vars = vars[keep]
 		temp = list()
-		j = 1
-		for(i in 3:length(vars)){
-			fixed[i-2] = as.character(vars[i])
-			this_fixed_data = data[,names(data)==fixed[i-2]]
-			if(is.numeric(this_fixed_data)){
-				temp[[j]] = seq(
+		for(i in 1:length(data_vars)){
+			this_fixed_data = data[,names(data)==data_vars[i]]
+			if(is.numeric(this_fixed_data)&(numeric_res>0)){
+				temp[[i]] = seq(
 					min(this_fixed_data)
 					, max(this_fixed_data)
 					, length.out=numeric_res
 				)
 			}else{
-				temp[[j]] = unique(this_fixed_data)
+				temp[[i]] = unique(this_fixed_data)
 			}
-			j = j + 1
 		}
-		to_return = expand.grid(temp)
-		names(to_return) = as.character(fixed)
+		to_return = data.frame(expand.grid(temp))
+		names(to_return) = data_vars
 	}else{
 		to_return = to_predict
 	}
+	requested_terms = terms(eval(parse(text=paste(
+		dv
+		, '~'
+		, paste(
+			attr(attr(data,'terms'),'term.labels')
+			, collapse = '+'
+		)
+	))))
 	to_return$ezDV = 0
 	names(to_return)[ncol(to_return)] = dv
-	mm = model.matrix(terms(fit),to_return)
-	to_return = to_return[,1:(ncol(to_return)-1)]
-	to_return$value = mm %*% fixef(fit)
-	#print(mm)
+	mm = model.matrix(requested_terms,to_return)
+	f = fixef(fit)
+	value = mm %*% f
+	to_return$value = as.numeric(value[,1])
 	vf = vcov(fit)
-	#print(vf)
 	tc = Matrix::tcrossprod(vf,mm)
 	to_return$var = Matrix::diag(mm %*% tc)
+	to_return = to_return[,names(to_return)!=dv]
+	to_return = to_return[,names(to_return) %in% c(data_vars,'value','var')]	
 	return(to_return)
 }

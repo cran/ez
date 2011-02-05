@@ -1,3 +1,35 @@
+3.0-0
+- added urls in all documentation pointing to the bug-report/feature-request site (https://github.com/mike-lawrence/ez/issues) and the discussion group (http://groups.google.com/group/ez4r).
+- changed reshape dependency to reshape2
+- ezANOVA
+-     fixed bug such that if detailed=F and car:Anova fails, the first line of results from stats:aov is cut off.
+-     Added more nuanced treatment of numeric variables
+-     Added type argument to specify sums-of-squares type selection (1,2, or 3)
+-     Added white.adjust argument to permit heteroscedasticity adjustment (see ?car:Anova)
+-     Added return_aov argument to permit returning a stats:aov object along with results (this was requested by a user seeking to use the aov object to compute contrasts)
+- ezMixed
+-     IMPORTANT: Fixed bug such that only the last specified random effect was implemented
+-     fixed bug such that an error occurred if only one fixed effect was specified
+-     changed output format to a list containing a summary data frame, a list of formulae, a list of errors, a list of warnings, and (optionally) a list of fitted models
+-     Changed format of summary output including removal of p-values (on the strong advice of many that the p-values from a likelihood ratio test of a fixed effect is highly questionable)
+-     removed the "return_anovas" argument
+-     added nuanced ability to explore non-linear effects via addition of "fixed_poly" and "fixed_poly_max" arguments
+- ezPredict
+-     Added ability to handle models fit with "I()"'d variables
+-     Added stop error when encountering models with "poly()" and no supplied prediction data frame
+- ezBoot
+-     Modified the resampling procedure to ensure that any given resampling of Subjects has at least 2 unique Subjects.
+- ezPerm
+-     Modified to return only the data frame containing the permutation test.
+- ezResample
+-     Added to "include" list for general use
+- progress_time
+-     Added to "include" list for general use
+-     fixed bug that prevented accurate timing
+- Added functions:
+-     progress_timeCI
+-         Computes bootstrapped time-remaining quantile estimates for long and heterogenous computations (eg. employed in ezMixed)
+
 2.1-0
 - fixed bug in ezBoot() (really attributable to ezResample() ) that caused an error when multiple between variables are supplied.
 - added option to ezBoot() to toggle resampling within the wid units (some suggest that such resampling yields CIs that are too wide)

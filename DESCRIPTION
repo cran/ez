@@ -1,12 +1,15 @@
 Package: ez
-Version: 2.1-0
-Date: 2010-09-28
+Version: 3.0-0
+Date: 2011-02-05
 Title: Easy analysis and visualization of factorial experiments.
 Author: Michael A. Lawrence <Mike.Lawrence@dal.ca>
 Maintainer: Michael A. Lawrence <Mike.Lawrence@dal.ca>
-Depends: R (>= 2.6-1), car (>= 2.0-0), reshape (>= 0.8-3), plyr (>=
-        1.1), ggplot2 (>= 0.8-8), stringr (>= 0.4), lme4 (>=
-        0.999375-35), Matrix (>= 0.999375-31)
+URL: http://groups.google.com/group/ez4r (discussion list),
+        https://github.com/mike-lawrence/ez/issues (bug reports and
+        feature requests)
+Depends: R (>= 2.12-1), car (>= 2.0-8), reshape2 (>= 1.1), plyr (>=
+        1.4), ggplot2 (>= 0.8-9), stringr (>= 0.4), lme4 (>=
+        0.999375-37), Matrix (>= 0.999375-46)
 Description: This package facilitates easy analysis of factorial
         experiments, including purely within-Ss designs (a.k.a.
         "repeated measures"), purely between-Ss designs, and mixed
@@ -23,6 +26,6 @@ Description: This package facilitates easy analysis of factorial
         visualized at any level of the experiment's design.
 License: GPL (>= 2)
 LazyLoad: yes
-Packaged: 2010-09-29 01:44:55 UTC; mike
+Packaged: 2011-02-05 18:57:39 UTC; mike
 Repository: CRAN
-Date/Publication: 2010-09-29 08:00:37
+Date/Publication: 2011-02-06 09:19:22

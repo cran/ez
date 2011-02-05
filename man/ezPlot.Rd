@@ -30,6 +30,7 @@ ezPlot(
     , levels = NULL
     , diff = NULL
     , reverse_diff = FALSE
+	, type = 2
     , dv_levs = NULL
     , dv_labs = NULL
     , row_y_free = FALSE
@@ -99,6 +100,7 @@ Optional .() object specifying a 2-level within-Ss varbiable to collapse to a di
   \item{reverse_diff}{
 Logical. If TRUE, triggers reversal of the difference collapse requested by \code{diff}.
 }
+\item{type}{Numeric value (either \code{1}, \code{2} or \code{3}) specifying the Sums of Squares "type" to employ when data are unbalanced (eg. when group sizes differ). See \code{\link{ezANOVA}} for details.}
   \item{dv_levs}{
 Optional character vector specifying the factor ordering of multiple values specified in \code{dv}.
 }
@@ -115,16 +117,18 @@ While \code{within} and \code{between} are both optional, at least one column of
 \value{
 A printable/modifiable ggplot2 object.
 }
-\author{
-Michael A. Lawrence \email{Mike.Lawrence@dal.ca}
-}
 
 \section{Warning }{
 The default error bars are Fisher's Least Significant Difference for the plotted effect, facilitating visual post-hoc multiple comparisons. Note however that in the context of mixed within-and-between-Ss designs, these bars can only be used for within-Ss comparisons.
 }
 
+\author{
+Michael A. Lawrence \email{Mike.Lawrence@dal.ca}
+To report bugs or request features, please visit: \url{https://github.com/mike-lawrence/ez/issues}
+To keep up to date on developments related to this package, join the discussion group at: \url{http://groups.google.com/group/ez4r}
+}
 \seealso{
-    \code{\link{ANT}}, \code{\link{ANT2}}, \code{\link{ezANOVA}}, \code{\link{ezBoot}}, \code{\link{ezBootPlot}}, \code{\link{ezCor}}, \code{\link{ezDesign}}, \code{\link{ezMixed}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezPrecis}}, \code{\link{ezPredict}}, \code{\link{ezStats}}
+    \code{\link{ANT}}, \code{\link{ANT2}}, \code{\link{ezANOVA}}, \code{\link{ezBoot}}, \code{\link{ezBootPlot}}, \code{\link{ezCor}}, \code{\link{ezDesign}}, \code{\link{ezMixed}}, \code{link{ezMixedRel}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezPrecis}}, \code{\link{ezPredict}}, \code{\link{ezResample}}, \code{\link{ezStats}}, \code{\link{progress_time}}, \code{\link{progress_timeCI}}
 }
 \examples{
 #Read in the ANT data (see ?ANT).

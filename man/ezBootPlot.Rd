@@ -90,50 +90,12 @@ A list with 4 components:
 }
 \author{
 Michael A. Lawrence \email{Mike.Lawrence@dal.ca}
+To report bugs or request features, please visit: \url{https://github.com/mike-lawrence/ez/issues}
+To keep up to date on developments related to this package, join the discussion group at: \url{http://groups.google.com/group/ez4r}
 }
 \seealso{
-    \code{\link{ANT}}, \code{\link{ANT2}}, \code{\link{ezANOVA}}, \code{\link{ezBoot}}, \code{\link{ezBootPlot}}, \code{\link{ezCor}}, \code{\link{ezDesign}}, \code{\link{ezMixed}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezPrecis}}, \code{\link{ezPredict}}, \code{\link{ezStats}}
+    \code{\link{ANT}}, \code{\link{ANT2}}, \code{\link{ezANOVA}}, \code{\link{ezBoot}}, \code{\link{ezBootPlot}}, \code{\link{ezCor}}, \code{\link{ezDesign}}, \code{\link{ezMixed}}, \code{link{ezMixedRel}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezPrecis}}, \code{\link{ezPredict}}, \code{\link{ezResample}}, \code{\link{ezStats}}, \code{\link{progress_time}}, \code{\link{progress_timeCI}}
 }
 \examples{
-#Read in the ANT data (see ?ANT).
-data(ANT)
-head(ANT)
-ezPrecis(ANT)
-
-#Run ezBoot on the accurate RT data
-rt = ezBoot(
-    data = ANT
-    , dv = .(rt)
-    , wid = .(subnum)
-    , within = .(cue,flank)
-    , between = .(group)
-    , iterations = 1e1 #1e3 or higher is best for publication
-)
-
-#plot the full design
-from_ezBootPlot = ezBootPlot(
-    from_ezBoot = rt
-    , x = .(flank)
-    , split = .(cue)
-    , col = .(group)
-)
-print(from_ezBootPlot$plot)
-
-#plot the effect of group across the flank*cue design
-from_ezBootPlot = ezBootPlot(
-    from_ezBoot = rt
-    , x = .(flank)
-    , split = .(cue)
-    , diff = .(group)
-)
-print(from_ezBootPlot$plot)
-
-#plot the flank*cue design, averaging across group
-from_ezBootPlot = ezBootPlot(
-    from_ezBoot = rt
-    , x = .(flank)
-    , split = .(cue)
-)
-print(from_ezBootPlot$plot)
-
+#see examples in ezBoot
 }

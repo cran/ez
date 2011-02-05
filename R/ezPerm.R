@@ -84,7 +84,7 @@ function(
 			}
 		)
 	}
-	progress = create_progress_bar('time')
+	progress = create_progress_bar('timeCI')
 	progress$init(perms)
 	for(this_perm in 1:perms){
 		for(this_within in within){
@@ -107,39 +107,14 @@ function(
 		progress$step()
 	}
 	progress$term()
-	#sim = ldply(
-	#	.data = 1:perms
-	#	, .fun = function(x){
-	#		for(this_within in within){
-	#			sim_data = ddply(
-	#				sim_data
-	#				,.variables = structure(as.list(c(wid,structure(within[within!=this_within],class='quoted'))),class='quoted')
-	#				,function(x){
-	#					x[,names(x)==this_within] = sample(x[,names(x)==this_within])
-	#					return(x)
-	#				}
-	#			)
-	#		}
-	#		for(this_between in between){
-	#			group_info[,names(group_info)==this_between]=sample(group_info[,names(group_info)==this_between])
-	#			for(this_wid in sim_data[,names(sim_data)==wid]){
-	#				sim_data[sim_data[,names(sim_data)==wid]==this_wid,names(sim_data)==this_between] = group_info[group_info[,names(group_info)==wid]==this_wid,names(group_info)==this_between]
-	#			}
-	#		}
-	#		return(ezPerm_aov(sim_data,aov_formula))
-	#	}
-	#	, .progress = 'time'
-	#	, .parallel = TRUE
-	#)
-	Effect = ezANOVA_main(data,dv,wid,within,between,observed=NULL,diff=NULL,reverse_diff=FALSE)$ANOVA$Effect
-	if(is.null(between)){
-		Effect = Effect[2:length(Effect)]
-	}
-	perm_test = data.frame(Effect=Effect)
+	from_terms = terms(eval(parse(text=aov_formula)))
+	term_labels = attr(from_terms,'term.labels')
+	term_labels = term_labels[grep('(Intercept)',term_labels,fixed=T,invert=T)]
+	term_labels = term_labels[grep('Error(',term_labels,fixed=T,invert=T)]
+	perm_test = data.frame(Effect=term_labels)
 	perm_test$p = rowMeans(sim>=obs)
 	perm_test$'p<.05' = ifelse(perm_test$p<.05,'*','')
-	cat('Time taken for ezPerm() to complete:',round(proc.time()[3]-start),'seconds.\n')
 	alarm()
-	return(list('Permutation Test'=perm_test,'Test Duration' = as.vector(proc.time()[3] - start)))
+	return(perm_test)
 }
 

@@ -45,18 +45,18 @@ Logical. If TRUE (default), call the \code{\link[utils]{alarm}} function when \c
 While \code{within} and \code{between} are both optional, at least one column of \code{data} must be provided to either \code{within} or \code{between}. Any numeric or character variables in \code{data} that are specified as either \code{wid}, \code{within} or \code{between} will be converted to a factor with a warning. The expected standard deviation of p-values is approximately \code{sqrt(true_p*(1-true_p)/perms)}; significance tests using an alpha of .05 should therefore employ at least 1e3 permutations. As the permutation test is computationally intensive, it is advisable to pre-test smaller values of \code{perms} and extrapolate to estimate the total test duration before attempting a full run. To facilitate such extrapolation, test duration is provided in the output after running a permutation test.
 }
 \value{
-A list containing one or more of the following components:
-\item{Permutation Test}{A data frame containing the permutation test results.}
-\item{Test Duration}{An estimate of the test duration in seconds.}
+A data frame containing the permutation test results.
 }
 \section{Warning }{
 \code{ezPerm()} is a work in progress. Under the current implementation, only main effects may be trusted.
 }
 \author{
 Michael A. Lawrence \email{Mike.Lawrence@dal.ca}
+To report bugs or request features, please visit: \url{https://github.com/mike-lawrence/ez/issues}
+To keep up to date on developments related to this package, join the discussion group at: \url{http://groups.google.com/group/ez4r}
 }
 \seealso{
-    \code{\link{ANT}}, \code{\link{ANT2}}, \code{\link{ezANOVA}}, \code{\link{ezBoot}}, \code{\link{ezBootPlot}}, \code{\link{ezCor}}, \code{\link{ezDesign}}, \code{\link{ezMixed}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezPrecis}}, \code{\link{ezPredict}}, \code{\link{ezStats}}
+    \code{\link{ANT}}, \code{\link{ANT2}}, \code{\link{ezANOVA}}, \code{\link{ezBoot}}, \code{\link{ezBootPlot}}, \code{\link{ezCor}}, \code{\link{ezDesign}}, \code{\link{ezMixed}}, \code{link{ezMixedRel}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezPrecis}}, \code{\link{ezPredict}}, \code{\link{ezResample}}, \code{\link{ezStats}}, \code{\link{progress_time}}, \code{\link{progress_timeCI}}
 }
 \examples{
 #Read in the ANT data (see ?ANT).

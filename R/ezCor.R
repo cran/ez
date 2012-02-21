@@ -62,7 +62,7 @@ function(
 	z=z[z$x_lab!=z$y_lab,]
 	names(z_cor)=c('cor','p','rsq','x_lab','y_lab')
 	z_cor=z_cor[z_cor$x_lab!=z_cor$y_lab,]
-	diag = melt.data.frame(data,measure.vars=names(data))
+	diag = melt(data,measure.vars=names(data))
 	names(diag)[1] = 'x_lab'
 	diag$y_lab = diag$x_lab
 	dens = ddply(
@@ -179,7 +179,7 @@ function(
 		,strip.text.y = theme_blank()
 	)
 	x_scale = scale_x_continuous(limits = c( -1*max(abs(dens$x)) , max(abs(dens$x)) ) )
-	size_scale = scale_size(limits = c(0,1),to=r_size_lims)
+	size_scale = scale_size(limits = c(0,1),range=r_size_lims)
 	return(
 		ggplot(z_cor)+
 		points_layer+

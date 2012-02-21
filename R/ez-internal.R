@@ -1,17 +1,3 @@
-colMean = function(x){
-	dimx = dim(x)
-	.Internal(colMeans(x,dimx[1],dimx[2],na.rm=TRUE))
-}
-colVar = function(x){
-	dimx = dim(x)
-	x.mean = .Internal(colMeans(x,dimx[1],dimx[2],na.rm=TRUE))
-	err = t(t(x)-x.mean)
-	err.sq = err*err
-	sum.err.sq = .Internal(colSums(err.sq,dimx[1],dimx[2],na.rm=TRUE))
-	n = .Internal(colSums(!is.na(x),dimx[1],dimx[2],na.rm=TRUE))
-	sum.err.sq/(n-1)
-}
-
 ezANOVA_levene <-
 function (y) {
 	form <- y
@@ -134,7 +120,8 @@ function(data, dv, wid, within, between){
 			levels(data[,names(data)==this_within]) = new_levs
 		}
 		wide_formula = paste(paste(wid,paste(between,collapse='+'),sep='+'),paste(within,collapse='+'),sep='~')
-		wide=cast(data, wide_formula, value = dv)
+		wide_formula = sub('+~','~',wide_formula,fixed=T)
+		wide=dcast(data, wide_formula, value_var = as.character(dv))
 		to_return$idata=ldply(strsplit(names(wide)[!(names(wide) %in% c(between,wid))],'_'))
 		names(to_return$idata)=within
 		for(this_within in within){

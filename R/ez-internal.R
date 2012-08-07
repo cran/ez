@@ -106,6 +106,29 @@ function(object){
 	return(to_return)
 }
 
+ezANOVA_between_summary <-
+function(from_Anova,white.adjust,between_numeric){
+	temp = as.data.frame(from_Anova)
+	if(!white.adjust){
+		names(temp) = c('SSn','DFn','F','p')
+		temp$DFd = temp$D[length(temp$D)]
+		temp$SSd = temp$S[length(temp$S)]
+		temp$Effect = row.names(temp)
+		row.names(temp) = 1:length(temp[,1])
+		temp = temp[1:(length(temp[,1])-1),c(7,2,5,1,6,3,4)]
+	}else{
+		names(temp) = c('DFn','F','p')
+		temp$DFd = temp$D[length(temp$D)]
+		temp$SSd = temp$S[length(temp$S)]
+		temp$Effect = row.names(temp)
+		row.names(temp) = 1:length(temp[,1])
+		temp = temp[1:(length(temp[,1])-1),c(5,1,4,2,3)]
+	}
+	temp$'p<.05'=ifelse(temp$p<.05,'*','')
+	return(temp)
+}
+
+
 ezANOVA_get_wide_lm<-
 function(data, dv, wid, within, between){
 	to_return = list()
@@ -121,7 +144,7 @@ function(data, dv, wid, within, between){
 		}
 		wide_formula = paste(paste(wid,paste(between,collapse='+'),sep='+'),paste(within,collapse='+'),sep='~')
 		wide_formula = sub('+~','~',wide_formula,fixed=T)
-		wide=dcast(data, wide_formula, value_var = as.character(dv))
+		wide = dcast(data, wide_formula, value.var = as.character(dv))
 		to_return$idata=ldply(strsplit(names(wide)[!(names(wide) %in% c(between,wid))],'_'))
 		names(to_return$idata)=within
 		for(this_within in within){
@@ -144,8 +167,8 @@ function(data, dv, wid, within, between){
 }
 
 ezANOVA_main <-
-function(data, dv, wid, within, between, observed, diff, reverse_diff, type, return_aov, white.adjust){
-	vars = as.character(c(dv,wid,between,within))
+function(data, dv, wid, within, within_full, within_covariates, between, between_covariates, observed, diff, reverse_diff, type, return_aov, white.adjust){
+	vars = as.character(c(dv,wid,between,within,diff,within_full))
 	for(var in vars){
 		if(!(var %in% names(data))){
 			stop(paste('"',var,'" is not a variable in the data frame provided.',sep=''))			
@@ -218,6 +241,23 @@ function(data, dv, wid, within, between, observed, diff, reverse_diff, type, ret
 				return(to_return)
 			}
 		)
+		wid_temp = data.frame(table(temp[,names(temp)==wid]))
+		if(any(wid_temp$Freq>1)){
+			warning(paste('The column supplied as the wid variable contains non-unique values across levels of the supplied between-Ss variables. Automatically fixing this by generating unique wid labels.',sep=''),immediate.=TRUE,call.=FALSE)
+			data[,names(data)==wid] = as.character(data[,names(data)==wid])
+			for(i in unique(as.character(between))){
+				data[,names(data)==wid] = paste(data[,names(data)==wid],data[,names(data)==i])
+			}
+			data[,names(data)==wid] = factor(data[,names(data)==wid])
+			temp = ddply(
+				idata.frame(data)
+				,structure(as.list(c(wid,between)),class = 'quoted')
+				,function(x){
+					to_return = 0
+					return(to_return)
+				}
+			)
+		}
 		temp = ddply(
 			temp
 			,structure(as.list(c(between)),class = 'quoted')
@@ -264,16 +304,132 @@ function(data, dv, wid, within, between, observed, diff, reverse_diff, type, ret
 			data[,names(data)==as.character(diff)] = factor(data[,names(data)==as.character(diff)],levels=rev(levels(data[,names(data)==as.character(diff)])))
 		}
 	}
-	temp = idata.frame(cbind(data,ezDV=data[,names(data) == as.character(dv)]))
-	data <- ddply(
-		temp
-		,structure(as.list(c(wid,between,within,diff)),class = 'quoted')
-		,function(x){
-			to_return = mean(x$ezDV)
-			names(to_return) = as.character(dv)
-			return(to_return)
+	########
+	# computing residuals from covariates
+	########
+	if((!is.null(between_covariates))|(!is.null(within_covariates))){
+		warning("Implementation of ANCOVA in this version of ez is experimental and not yet fully validated. Also, note that ANCOVA is intended purely as a tool to increase statistical power; ANCOVA can not eliminate confounds in the data. Specifically, covariates should: (1) be uncorrelated with other predictors and (2) should have effects on the DV that are independent of other predictors. Failure to meet these conditions may dramatically increase the rate of false-positives.",immediate.=TRUE,call.=FALSE)
+	}
+	if(!is.null(between_covariates)){
+		temp = idata.frame(cbind(data,ezDV=data[,names(data) == as.character(dv)]))
+		temp <- ddply(
+			temp
+			,structure(as.list(c(wid,between_covariates,within,within_full,diff)),class = 'quoted')
+			,function(x){
+				to_return = mean(x$ezDV)
+				names(to_return) = as.character(dv)
+				return(to_return)
+			}
+		)
+		temp = idata.frame(cbind(temp,ezDV=temp[,names(temp) == as.character(dv)]))
+		temp <- ddply(
+			temp
+			,structure(as.list(c(wid,between_covariates)),class = 'quoted')
+			,function(x){
+				to_return = mean(x$ezDV)
+				names(to_return) = as.character(dv)
+				return(to_return)
+			}
+		)
+		for(cov in between_covariates){
+			temp$ezCov = temp[,names(temp)==cov]
+			if(is.factor(temp$ezCov)){
+				contrasts(temp$ezCov) = 'contr.helmert'
+			}else{
+				temp$ezCov = temp$ezCov - mean(temp$ezCov)
+				warning('Covariate"',cov,'" is numeric and will therefore be fit to a linear effect.',immediate.=TRUE,call.=FALSE)
+			}
+			fit = eval(parse(text=paste('lm(formula=',dv,'~ezCov,data=temp)')))
+			temp$fitted = fitted(fit)
+			for(cov_lev in as.character(unique(temp[,names(temp)==cov]))){
+				data[as.character(data[,names(data)==cov])==cov_lev,names(data)==dv] = data[as.character(data[,names(data)==cov])==cov_lev,names(data)==dv] - temp$fitted[as.character(temp[,names(temp)==cov])==cov_lev][1] + as.numeric(coef(fit)[1])
+			}
 		}
-	)
+	}
+	if(!is.null(within_covariates)){
+		temp = idata.frame(cbind(data,ezDV=data[,names(data) == as.character(dv)]))
+		temp <- ddply(
+			temp
+			,structure(as.list(c(wid,within_covariates,within,within_full,diff)),class = 'quoted')
+			,function(x){
+				to_return = mean(x$ezDV)
+				names(to_return) = as.character(dv)
+				return(to_return)
+			}
+		)
+		for(cov in as.character(within_covariates)){
+			temp2 <- ddply(
+				.data = temp
+				, .variables = eval(parse(text=paste('.(',wid,',',cov,')')))#structure(as.list(c(wid,as.symbol(cov)))),class = 'quoted')
+				, .fun = function(x){
+					to_return = data.frame(
+						value = mean(x[,names(x)==dv])
+					)
+					names(to_return) = as.character(dv)
+					return(to_return)
+				}
+			)
+			if(is.numeric(temp2[,names(temp2)==cov])){
+				warning('Covariate"',cov,'" is numeric and will therefore be fit to a linear effect.',immediate.=TRUE,call.=FALSE)
+			}
+			for(this_wid in unique(as.character(data[,names(data)==wid]))){
+				temp3 = temp2[temp2[,names(temp2)==wid]==this_wid,]
+				temp3$ezCov = temp3[,names(temp3)==cov]
+				if(is.factor(temp3$ezCov)){
+					contrasts(temp3$ezCov) = 'contr.helmert'
+				}else{
+					temp3$ezCov = temp3$ezCov - mean(temp3$ezCov)
+				}
+				fit = eval(parse(text=paste('lm(formula=',dv,'~ezCov,data=temp3)')))
+				temp3$fitted = fitted(fit)
+				for(cov_lev in unique(as.character(temp3[,names(temp3)==cov]))){
+					data[(as.character(data[,names(data)==cov])==cov_lev)&(data[,names(data)==wid]==this_wid),names(data)==dv] = data[(as.character(data[,names(data)==cov])==cov_lev)&(data[,names(data)==wid]==this_wid),names(data)==dv] - temp3$fitted[as.character(temp3[,names(temp3)==cov])==cov_lev][1] + as.numeric(coef(fit)[1])
+				}
+			}
+		}
+	}
+	########
+	# Collapsing the data to cell means
+	########
+	if(!is.null(within_full)){
+		warning(paste('Collapsing data to cell means first using variables supplied to "within_full", then collapsing the resulting means to means for the cells supplied to "within".',sep=''),immediate.=TRUE,call.=FALSE)
+		temp = idata.frame(cbind(data,ezDV=data[,names(data) == as.character(dv)]))
+		data <- ddply(
+			temp
+			,structure(as.list(c(wid,between,within,within_full,diff)),class = 'quoted')
+			,function(x){
+				to_return = mean(x$ezDV)
+				names(to_return) = as.character(dv)
+				return(to_return)
+			}
+		)
+		temp = idata.frame(cbind(data,ezDV=data[,names(data) == as.character(dv)]))
+		data <- ddply(
+			temp
+			,structure(as.list(c(wid,between,within,diff)),class = 'quoted')
+			,function(x){
+				to_return = mean(x$ezDV)
+				names(to_return) = as.character(dv)
+				return(to_return)
+			}
+		)
+	}else{
+		data <- ddply(
+			data
+			,structure(as.list(c(wid,between,within,diff)),class = 'quoted')
+			,function(x){
+				to_return = data.frame(
+					temp = mean(x[,names(x)==as.character(dv)])
+					, ezNum = nrow(x)
+				)
+				names(to_return)[1] = as.character(dv)
+				return(to_return)
+			}
+		)
+		if(any(data$ezNum>1)){
+			warning(paste('Collapsing data to cell means. *IF* the requested effects are a subset of the full design, you must use the "within_full" argument, else results may be inaccurate.',sep=''),immediate.=TRUE,call.=FALSE)
+		}
+	}
 	if(any(is.na(data[,names(data)==as.character(dv)]))){
 		stop('One or more cells returned NA when aggregated to a mean. Check your data.')
 	}
@@ -326,7 +482,7 @@ function(data, dv, wid, within, between, observed, diff, reverse_diff, type, ret
 						Anova(
 							wide_lm$lm
 							, idata = wide_lm$idata
-							, type = 2
+							, type = 3 #hardcoded to 3, else car::Anova() prints a note
 							, idesign = eval(parse(text=wide_lm$idesign_formula))
 						)
 					)
@@ -352,27 +508,10 @@ function(data, dv, wid, within, between, observed, diff, reverse_diff, type, ret
 				wide_lm = ezANOVA_get_wide_lm(data, dv, wid, within, between)
 				from_Anova = Anova(
 					wide_lm$lm
-					, type = 2
+					, type = type
 					, white.adjust = white.adjust
 				)
-				temp = as.data.frame(from_Anova)
-				if(!white.adjust){
-					names(temp) = c('SSn','DFn','F','p')
-					temp$DFd = temp$D[length(temp$D)]
-					temp$SSd = temp$S[length(temp$S)]
-					temp$Effect = row.names(temp)
-					row.names(temp) = 1:length(temp[,1])
-					temp = temp[1:(length(temp[,1])-1),c(7,2,5,1,6,3,4)]
-				}else{
-					names(temp) = c('DFn','F','p')
-					temp$DFd = temp$D[length(temp$D)]
-					temp$SSd = temp$S[length(temp$S)]
-					temp$Effect = row.names(temp)
-					row.names(temp) = 1:length(temp[,1])
-					temp = temp[1:(length(temp[,1])-1),c(5,1,4,2,3)]
-				}
-				temp$'p<.05'=ifelse(temp$p<.05,'*','')
-				to_return$ANOVA = temp
+				to_return$ANOVA = ezANOVA_between_summary(from_Anova,white.adjust,between_numeric)
 				if(!any(between_numeric)){
 					to_return$'Levene\'s Test for Homogeneity of Variance' = ezANOVA_levene(wide_lm$lm)
 				}else{
@@ -399,7 +538,7 @@ function(data, dv, wid, within, between, observed, diff, reverse_diff, type, ret
 								Anova(
 									wide_lm$lm
 									, idata = wide_lm$idata
-									, type = 2
+									, type = type
 									, idesign = eval(parse(text=wide_lm$idesign_formula))
 								)
 							)
@@ -422,34 +561,60 @@ function(data, dv, wid, within, between, observed, diff, reverse_diff, type, ret
 			}
 		}else{ #data is imbalanced
 			if(type==1){
-				warning('Data are unbalanced, switching to "type=2" (see documentation in ?ezAnova)',immediate.=TRUE,call.=FALSE)
-			}
-			if(!is.null(within)){
-				if(any(within_numeric)){
-					stop('Cannot perform ANOVA when data are imbalanced and when one or more within-Ss variables are numeric. Try ezMixed() instead.')
+				if((length(between)>1)|(!is.null(within))){
+					warning('Using "type==1" is highly questionable when data are unbalanced and there is more than one variable. Hopefully you are doing this for demonstration purposes only!',immediate.=TRUE,call.=FALSE)
 				}
-			}
-			wide_lm = ezANOVA_get_wide_lm(data, dv, wid, within, between)
-			to_return = NULL
-			try(
-				to_return <- ezANOVA_summary(
-					Anova(
-						wide_lm$lm
-						, idata = wide_lm$idata
-						, type = 2
-						, idesign = eval(parse(text=wide_lm$idesign_formula))
-					)
-				)
-			)
-			if(is.null(to_return)){
-				stop('The car::Anova() function used to compute results and assumption tests seems to have failed. Most commonly this is because you have too few subjects relative to the number of cells in the within-Ss design. It is possible that trying the ANOVA again with "type=1" may yield results (but definitely no assumption tests).')
-			}
-			if(return_aov){
 				from_aov = ezANOVA_aov(data, dv, wid, within, between)
-				to_return$aov = from_aov$aov
+				to_return$ANOVA = from_aov$ANOVA
+				if(return_aov){
+					to_return$aov = from_aov$aov
+				}
+			}else{
+				if(is.null(within)){
+					wide_lm = ezANOVA_get_wide_lm(data, dv, wid, within, between)
+					from_Anova = Anova(
+						wide_lm$lm
+						, type = type
+						, white.adjust = white.adjust
+					)
+					to_return$ANOVA = ezANOVA_between_summary(from_Anova,white.adjust,between_numeric)
+					if(!any(between_numeric)){
+						to_return$'Levene\'s Test for Homogeneity of Variance' = ezANOVA_levene(wide_lm$lm)
+					}else{
+						warning('At least one numeric between-Ss variable detected, therefore no assumption test will be returned.',immediate.=TRUE,call.=FALSE)
+					}
+					if(return_aov){
+						from_aov = ezANOVA_aov(data, dv, wid, within, between)
+						to_return$aov = from_aov$aov
+					}
+				}else{
+					if(any(within_numeric)){
+						stop('Cannot perform ANOVA when data are imbalanced and when one or more within-Ss variables are numeric. Try ezMixed() instead.')
+					}
+					wide_lm = ezANOVA_get_wide_lm(data, dv, wid, within, between)
+					to_return = NULL
+					try(
+						to_return <- ezANOVA_summary(
+							Anova(
+								wide_lm$lm
+								, idata = wide_lm$idata
+								, type = type
+								, idesign = eval(parse(text=wide_lm$idesign_formula))
+							)
+						)
+					)
+					if(is.null(to_return)){
+						stop('The car::Anova() function used to compute results and assumption tests seems to have failed. Most commonly this is because you have too few subjects relative to the number of cells in the within-Ss design. It is possible that trying the ANOVA again with "type=1" may yield results (but definitely no assumption tests).')
+					}
+					if(return_aov){
+						from_aov = ezANOVA_aov(data, dv, wid, within, between)
+						to_return$aov = from_aov$aov
+					}
+				}
 			}
 		}
 	}
+	to_return$ANOVA = to_return$ANOVA[order(str_count(to_return$ANOVA$Effect,':')),]
 	to_return$data = data
 	return(to_return)
 }
@@ -464,12 +629,7 @@ function(data, dv, wid, within, between){
 		,paste(as.character(within),collapse = '*')
 		,ifelse(
 			is.null(within)
-			,paste(
-				'+Error('
-				,as.character(wid)
-				,')'
-				,sep = ''
-			)
+			,''
 			,paste(
 				'+Error('
 				,as.character(wid)
@@ -529,3 +689,45 @@ function(data, aov_formula){
 	f=f[!is.na(f)]
 	return(f)
 }
+
+########
+# Framework for ezANOVA branching:
+########
+
+#if no between
+#	if any within numeric
+#		use aov
+#	else if there are within numeric
+#		if type != 1
+#			use Anova
+#		else if type==1
+#			use aov
+#else if there are between
+#	if between is balanced
+#		if there are no within
+#			use Anova
+#			if there are no numeric between
+#				report levene
+#		else if there are within
+#			if any within numeric
+#				use aov
+#			else if there are within numeric
+#				if type != 1
+#					use Anova
+#				else if type==1
+#					use aov
+#	else if between is unbalanced
+#		if type==1
+#			if more than one variable
+#				print big warning
+#			use aov with big warning
+#		else if type!= 1
+#			if there are no within
+#				use Anova
+#				if there are no numeric between
+#					report levene
+#			else if there are within
+#				if there are any within numeric
+#					stop with error
+#				else if there are no within numeric
+#					use Anova

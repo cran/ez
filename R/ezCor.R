@@ -13,9 +13,18 @@ function(
 	, ci_colour = 'green'
 	, ci_alpha = .5
 	, test_alpha = .05
+	, test_correction = 'none'
 ){
+	ntests = ((((ncol(data)-1)^2)-(ncol(data)-1))/2)
+	if(test_correction[1]=='bonferroni'){
+		test_alpha = test_alpha/ntests
+	}else{
+		if(test_correction[1]=='sidak'){
+			test_alpha = 1-(1-test_alpha)^(1/ntests)
+		}
+	}
 	for(i in 1:length(data)){
-		data[,i]=(data[,i]-mean(data[,i]))/sd(data[,i])
+		data[,i]=(data[,i]-mean(data[,i],na.rm=T))/sd(data[,i],na.rm=T)
 	}
 	z=data.frame()
 	z_cor = data.frame()
@@ -28,6 +37,9 @@ function(
 		}else{
 			x = data[,i]
 			y = data[,j]
+			toss = is.na(x) | is.na(y)
+			x = x[!toss]
+			y = y[!toss]
 			temp=as.data.frame(cbind(x,y))
 			temp=cbind(temp,names(data)[i],names(data)[j])
 			z=rbind(z,temp)
@@ -69,7 +81,7 @@ function(
 		diag
 		, .(x_lab,y_lab)
 		, function(x){
-			d = density(x$value,adjust=density_adjust)
+			d = density(x$value[!is.na(x$value)],adjust=density_adjust)
 			d = data.frame(x=d$x,y=d$y)
 			d$ymax = d$y*(max(abs(c(z$x,z$y)))*2*density_height)/max(d$y) - max(abs(c(z$x,z$y)))*density_height
 			d$ymin = - max(abs(c(z$x,z$y)))*density_height
@@ -94,9 +106,9 @@ function(
 			alpha = point_alpha
 		)
 		, data = z
-		, mapping = aes(
-			x = x
-			, y = y
+		, mapping = aes_string(
+			x = 'x'
+			, y = 'y'
 		)
 	)
 	lm_line_layer = layer(
@@ -107,9 +119,9 @@ function(
 		, stat = 'smooth'
 		, stat_params = list(method = 'lm')
 		, data = z
-		, mapping = aes(
-			x = x
-			, y = y
+		, mapping = aes_string(
+			x = 'x'
+			, y = 'y'
 		)
 	)
 	lm_ribbon_layer = layer(
@@ -121,21 +133,21 @@ function(
 		, stat = 'smooth'
 		, stat_params = list(method = 'lm')
 		, data = z
-		, mapping = aes(
-			x = x
-			, y = y
+		, mapping = aes_string(
+			x = 'x'
+			, y = 'y'
 		)
 	)
 	cor_text_layer = layer(
 		geom = 'text'
 		, data = z_cor
-		, mapping = aes(
-			x=0
-			, y=0
-			, label=cor
-			, size = rsq
-			, colour = p
+		, mapping = aes_string(
+			label = 'cor'
+			, size = 'rsq'
+			, colour = 'p'
 		)
+		, x = 0
+		, y = 0
 	)
 	dens_layer = layer(
 		geom = 'ribbon'
@@ -144,10 +156,10 @@ function(
 			, fill = 'white'
 		)
 		, data = dens
-		, mapping = aes(
-			x = x
-			, ymax = ymax
-			, ymin = ymin
+		, mapping = aes_string(
+			x = 'x'
+			, ymax = 'ymax'
+			, ymin = 'ymin'
 		)
 	)
 	label_layer = layer(
@@ -158,26 +170,47 @@ function(
 			, alpha = .5
 		)
 		, data = labels
-		, mapping = aes(
-			x=x
-			, y=y
-			, label=label
+		, mapping = aes_string(
+			x='x'
+			, y='y'
+			, label='label'
 		)
 	)
+	y_lab = NULL
+	x_lab = NULL
 	f = facet_grid(y_lab~x_lab)
-	o = opts(
-		panel.grid.minor = theme_blank()
-		,panel.grid.major = theme_blank()
-		,axis.ticks = theme_blank()
-		,axis.text.y = theme_blank()
-		,axis.text.x = theme_blank()
-		,axis.title.y = theme_blank()
-		,axis.title.x = theme_blank()
-		,legend.position='none'
-		,strip.background = theme_blank()
-		,strip.text.x = theme_blank()
-		,strip.text.y = theme_blank()
-	)
+	packs = installed.packages()
+	ggplot2_version_char = packs[dimnames(packs)[[1]]=='ggplot2',dimnames(packs)[[2]]=='Version']
+	ggplot2_version_char = strsplit(ggplot2_version_char,'.',fixed=T)[[1]]
+	if((ggplot2_version_char[1]>0)|(ggplot2_version_char[2]>9)|(ggplot2_version_char[3]>1)){
+		o = theme(
+			panel.grid.minor = element_blank()
+			,panel.grid.major = element_blank()
+			,axis.ticks = element_blank()
+			,axis.text.y = element_blank()
+			,axis.text.x = element_blank()
+			,axis.title.y = element_blank()
+			,axis.title.x = element_blank()
+			,legend.position='none'
+			,strip.background = element_blank()
+			,strip.text.x = element_blank()
+			,strip.text.y = element_blank()
+		)
+	}else{
+		o = opts(
+			panel.grid.minor = theme_blank()
+			,panel.grid.major = theme_blank()
+			,axis.ticks = theme_blank()
+			,axis.text.y = theme_blank()
+			,axis.text.x = theme_blank()
+			,axis.title.y = theme_blank()
+			,axis.title.x = theme_blank()
+			,legend.position='none'
+			,strip.background = theme_blank()
+			,strip.text.x = theme_blank()
+			,strip.text.y = theme_blank()
+		)
+	}
 	x_scale = scale_x_continuous(limits = c( -1*max(abs(dens$x)) , max(abs(dens$x)) ) )
 	size_scale = scale_size(limits = c(0,1),range=r_size_lims)
 	return(

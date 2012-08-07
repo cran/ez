@@ -7,10 +7,30 @@ function(
 	, between = NULL
 	, resample_within = TRUE
 	, iterations = 1e3
-	, lmer = TRUE
-	, family = 'gaussian'
-	, alarm = TRUE
+	, lmer = FALSE
+	, lmer_family = gaussian
+	, parallel = FALSE
+	, alarm = FALSE
 ){
+	args_to_check = c('dv','wid','within','between')
+	args = as.list(match.call()[-1])
+	for(i in 1:length(args)){
+		arg_name = names(args)[i]
+		if(arg_name%in%args_to_check){
+			if(is.symbol(args[[i]])){
+				code = paste(arg_name,'=.(',as.character(args[[i]]),')',sep='')
+				eval(parse(text=code))
+			}else{
+				if(is.language(args[[i]])){
+					arg_vals = as.character(args[[i]])
+					arg_vals = arg_vals[2:length(arg_vals)]
+					arg_vals = paste(arg_vals,collapse=',')
+					code = paste(arg_name,'=.(',arg_vals,')',sep='')
+					eval(parse(text=code))
+				}
+			}
+		}
+	}
 	start = proc.time()[3]
 	vars = as.character(c(dv,wid,between,within))
 	for(var in vars){
@@ -62,8 +82,8 @@ function(
 				return(to_return)
 			}
 		)
-		if(any(cell_size_per_id$value<=1)){
-			stop(paste('There are no cells with multiple observations; please set the variable "resample_within" to FALSE.'))
+		if(all(cell_size_per_id$value<=1)){
+			stop(paste('There are no within cells with multiple observations; please set the variable "resample_within" to FALSE.'))
 		}
 	}
 	if(lmer){
@@ -76,7 +96,7 @@ function(
 		)
 		fit = lmer(
 			formula = eval(parse(text=formula))
-			, family = family
+			, family = lmer_family
 			, data = data
 		)
 		temp = list()
@@ -85,12 +105,13 @@ function(
 			temp[[j]] = unique(data[,names(data)==as.character(i)])
 			j = j + 1
 		}
-		cell_means = expand.grid(temp)
+		cell_means = data.frame(expand.grid(temp))
 		names(cell_means) = as.character(structure(as.list(c(between,within)),class = 'quoted'))
 		cell_means$ezDV = 0
 		mm = model.matrix(terms(fit),cell_means)
+		value = mm %*% fixef(fit)
+		cell_means$value = as.numeric(value[,1])
 		cell_means = cell_means[,names(cell_means)!='ezDV']
-		cell_means$value = mm %*% fixef(fit)
 	}else{
 		cell_means_by_wid = ddply(
 			.data = idata.frame(data)
@@ -113,19 +134,20 @@ function(
 			}
 		)
 	}
-	boots = ldply(
+	boots = llply(
 		.data = 1:iterations
 		, .fun = function(x){
 			done = FALSE
 			while(!done){
-				resampled_data = ezResample(data,dv,wid,within,between,resample_within)
+				resampled_data = ezResample(data=data,wid=wid,within=within,between=between,resample_within=resample_within,check_args=F)
 				if(lmer){
 					fit = lmer(
 						formula = eval(parse(text=formula))
-						, family = family
+						, family = lmer_family
 						, data = resampled_data
 					)
-					cell_means$value = mm %*% fixef(fit)
+					value = mm %*% fixef(fit)
+					cell_means$value = as.numeric(value[,1])
 				}else{
 					cell_means_by_wid = ddply(
 						.data = idata.frame(resampled_data)
@@ -155,15 +177,20 @@ function(
 			cell_means$iteration = x
 			return(cell_means)
 		}
-		, .progress = 'timeCI'
+		, .progress = 'time'
+		, .parallel = parallel
 	)
+	boots = Filter(Negate(empty), boots)
+	boots = do.call(rbind,boots)	
 	to_return = list()
 	if(lmer){
 		to_return$fit = fit
 	}
 	to_return$cells = cell_means
 	to_return$boots = boots
-	alarm()
+	if(alarm){
+		alarm()
+	}
 	return(to_return)
 }
 

@@ -1,9 +1,6 @@
 \name{ezPrecis}
-\Rdversion{1.1}
 \alias{ezPrecis}
-\title{
-Function to obtain a structure summary of a given data frame.
-}
+\title{Obtain a structure summary of a given data frame}
 \description{
 This function provides a structure summary of a given data frame.
 }
@@ -14,10 +11,10 @@ ezPrecis(
 )
 }
 \arguments{
-  \item{data}{
+\item{data}{
 Data frame containing the data to be analyzed.
 }
-  \item{transpose}{
+\item{transpose}{
 Logical. If TRUE (default), triggers tranposition of the resulting summary data frame (useful when there are many columns in the original data frame, leading the untransposed summary data frame to wrap).
 }
 }
@@ -43,12 +40,12 @@ This row reports the maximum value found in each column. If the column data is n
 }
 }
 \author{
-Michael A. Lawrence \email{Mike.Lawrence@dal.ca}
-To report bugs or request features, please visit: \url{https://github.com/mike-lawrence/ez/issues}
-To keep up to date on developments related to this package, join the discussion group at: \url{http://groups.google.com/group/ez4r}
+Michael A. Lawrence \email{Mike.Lawrence@dal.ca}\cr
+Visit the \code{ez} development site at \url{http://github.com/mike-lawrence/ez}\cr
+for the bug/issue tracker and the link to the mailing list.
 }
 \seealso{
-    \code{\link{ANT}}, \code{\link{ANT2}}, \code{\link{ezANOVA}}, \code{\link{ezBoot}}, \code{\link{ezBootPlot}}, \code{\link{ezCor}}, \code{\link{ezDesign}}, \code{\link{ezMixed}}, \code{link{ezMixedRel}}, \code{\link{ezPerm}}, \code{\link{ezPlot}}, \code{\link{ezPrecis}}, \code{\link{ezPredict}}, \code{\link{ezResample}}, \code{\link{ezStats}}, \code{\link{progress_time}}, \code{\link{progress_timeCI}}
+\code{\link{ezDesign}}
 }
 \examples{
 #Read in the ANT2 data (see ?ANT2).

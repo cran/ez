@@ -7,6 +7,25 @@ function(
 	, col = NULL
 	, cell_border_size = 10
 ){
+	args_to_check = c('x','y','row','col')
+	args = as.list(match.call()[-1])
+	for(i in 1:length(args)){
+		arg_name = names(args)[i]
+		if(arg_name%in%args_to_check){
+			if(is.symbol(args[[i]])){
+				code = paste(arg_name,'=.(',as.character(args[[i]]),')',sep='')
+				eval(parse(text=code))
+			}else{
+				if(is.language(args[[i]])){
+					arg_vals = as.character(args[[i]])
+					arg_vals = arg_vals[2:length(arg_vals)]
+					arg_vals = paste(arg_vals,collapse=',')
+					code = paste(arg_name,'=.(',arg_vals,')',sep='')
+					eval(parse(text=code))
+				}
+			}
+		}
+	}
 	counts = ddply(
 		.data = data
 		, .variables = structure(as.list(c(x,y,row,col)),class = 'quoted')
@@ -62,23 +81,38 @@ function(
 		)
 		names(counts)[names(counts)==col] = 'col'
 	}
+	counts$ymin = counts$y-.5
+	counts$ymax = counts$y+.5
+	counts$xmin = counts$x-.5
+	counts$xmax = counts$x+.5
 	p = ggplot(
 		data = counts
-		,aes(
-			ymin = y-.5
-			, ymax = y+.5
-			, xmin = x-.5
-			, xmax = x+.5
-			, fill = Count	
+		,aes_string(
+			ymin = 'ymin'
+			, ymax = 'ymax'
+			, xmin = 'xmin'
+			, xmax = 'xmax'
+			, fill = 'Count'	
 		)
 	)+
 	geom_rect()+
-	labs(x=x_lab,y=y_lab)+
-	opts(
-		panel.grid.major = theme_blank()
-		, panel.grid.minor = theme_blank()
-		, legend.background = theme_rect(colour='transparent',fill='transparent')
-	)
+	labs(x=x_lab,y=y_lab)
+	packs = installed.packages()
+	ggplot2_version_char = packs[dimnames(packs)[[1]]=='ggplot2',dimnames(packs)[[2]]=='Version']
+	ggplot2_version_char = strsplit(ggplot2_version_char,'.',fixed=T)[[1]]
+	if((ggplot2_version_char[1]>0)|(ggplot2_version_char[2]>9)|(ggplot2_version_char[3]>1)){
+		p = p + theme(
+			panel.grid.major = element_blank()
+			, panel.grid.minor = element_blank()
+			, legend.background = element_rect(colour='transparent',fill='transparent')
+		)
+	}else{
+		p = p + opts(
+			panel.grid.major = theme_blank()
+			, panel.grid.minor = theme_blank()
+			, legend.background = theme_rect(colour='transparent',fill='transparent')
+		)
+	}
 	if(max(counts$Count)==min(counts$Count)){
 		p = p + scale_fill_gradient(
 			high = muted('blue')
@@ -98,7 +132,7 @@ function(
 		p = p + geom_rect(
 			size = cell_border_size
 			, colour = 'grey90'
-			, legend = FALSE
+			, guide = 'none'
 		)
 	}
 	p = p + scale_x_continuous(

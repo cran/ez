@@ -4,8 +4,11 @@ function (
 	, dv
 	, wid
 	, within = NULL
+	, within_full = NULL
+	, within_covariates = NULL
 	, between = NULL
 	, between_full = NULL
+	, between_covariates = NULL
 	, x
 	, do_lines = TRUE
 	, do_bars = TRUE
@@ -24,8 +27,28 @@ function (
 	, type = 2
 	, dv_levs = NULL
 	, dv_labs = NULL
-	, row_y_free = FALSE
+	, y_free = FALSE
+	, print_code = FALSE
 ){
+	args_to_check = c('dv','wid','within','between','within_full','between_full','diff','x','split','row','col','to_numeric','within_covariates','between_covariates')
+	args = as.list(match.call()[-1])
+	for(i in 1:length(args)){
+		arg_name = names(args)[i]
+		if(arg_name%in%args_to_check){
+			if(is.symbol(args[[i]])){
+				code = paste(arg_name,'=.(',as.character(args[[i]]),')',sep='')
+				eval(parse(text=code))
+			}else{
+				if(is.language(args[[i]])){
+					arg_vals = as.character(args[[i]])
+					arg_vals = arg_vals[2:length(arg_vals)]
+					arg_vals = paste(arg_vals,collapse=',')
+					code = paste(arg_name,'=.(',arg_vals,')',sep='')
+					eval(parse(text=code))
+				}
+			}
+		}
+	}
 	if(!(x %in% within) & !(x %in% between) ){
 		stop('"x" not listed in "within" or "between".')
 	}
@@ -97,7 +120,7 @@ function (
 		if(!is.data.frame(data)){
 			stop('"data" cannot be a list when specifying only one dv.')
 		}
-		data = ezStats(data,dv,wid,within,between,between_full,diff,reverse_diff)
+		stats = ezStats(data=data,dv=dv,wid=wid,within=within,within_full=within_full,within_covariates=within_covariates,between=between,between_full=between_full,between_covariates=between_covariates,diff=diff,reverse_diff=reverse_diff,type=type,check_args=F)
 	}else{
 		if(!is.null(row)){
 			stop('You may not specify a variable to "row" when also specifying multiple dvs.')
@@ -106,36 +129,41 @@ function (
 			stop('When specifying multiple dvs, you must provide a list to "data" with as many elements as there are dvs..')
 		}
 		row = .(dv)
-		data_combined = NULL
+		stats = NULL
 		for(this_dv in 1:length(dv)){
 			this_dot_dv = structure(as.list(c(dv[this_dv])),class = 'quoted')
 			if(!is.data.frame(data)){
-				data_combined = rbind(
-					data_combined
+				stats = rbind(
+					stats
 					, cbind(
 						ezStats(
 							data = data[[this_dv]]
 							, dv = this_dot_dv
 							, wid = wid
 							, within = within
+							, within_full = within_full
+							, within_covariates = within_covariates
 							, between = between
 							, between_full = between_full
+							, between_covariates = between_covariates
 							, diff = diff
 							, reverse_diff = reverse_diff
 							, type = type
+							, check_args = FALSE
 						)
 						, dv = as.character(dv[this_dv])
 					)
 				)
 			}else{
-				data_combined = rbind(
-					data_combined
+				stats = rbind(
+					stats
 					, cbind(
 						ezStats(
 							data = data[[this_dv]]
 							, dv = this_dot_dv
 							, wid = wid
 							, within = within
+							, within_full = within_full
 							, between = between
 							, between_full = between_full
 							, diff = diff
@@ -147,26 +175,25 @@ function (
 				)
 			}
 		}
-		data = data_combined
 		if(!is.null(dv_levs)){
 			if(!is.null(dv_labs)){
-				data$dv = factor(data$dv, levels = dv_levs, labels = dv_labs)
+				stats$dv = factor(stats$dv, levels = dv_levs, labels = dv_labs)
 			}else{
-				data$dv = factor(data$dv, levels = dv_levs)				
+				stats$dv = factor(stats$dv, levels = dv_levs)				
 			}
 		}else{
 			 if(!is.null(dv_labs)){
-				levels(data$dv) = dv_labs
+				levels(stats$dv) = dv_labs
 			}
 		}
 	}
 	if(is.null(bar_size)){
-		bar_size = data$FLSD
+		bar_size = stats$FLSD
 	}
-	data$ymin = data$Mean-bar_size/2
-	data$ymax = data$Mean+bar_size/2
+	stats$lo = stats$Mean-bar_size/2
+	stats$hi = stats$Mean+bar_size/2
 	for(i in to_numeric){
-		data[,names(data) == i] = as.numeric(as.character(data[,names(data) == i]))
+		stats[,names(stats) == i] = as.numeric(as.character(stats[,names(stats) == i]))
 	}
 	if(!is.null(bar_width)){
 		if(!is.numeric(bar_width)){
@@ -177,108 +204,88 @@ function (
 			}
 		}
 	}else{
-		if(!is.numeric(data[,names(data)==x])){
+		if(!is.numeric(stats[,names(stats)==x])){
 			bar_width = .25
 		}
 	}
-	names(data)[names(data) == x] = 'x'
+	p = paste("ggplot(\n\tdata = stats\n\t, mapping = aes(\n\t\ty = Mean\n\t\t, x = ",x,"\n\t)\n)",sep='')
 	if(!is.null(split)){
-		names(data)[names(data) == split] = 'split'
-	}
-	if(!is.null(row)){
-		names(data)[names(data) == row] = 'row'
-	}
-	if(!is.null(col)){
-		names(data)[names(data) == col] = 'col'
-	}
-	p = ggplot(
-		data = data
-		,aes(
-			y = Mean
-			,x = x
-		)
-	)
-	if(!is.null(split)){
-		p = p+geom_point(
-			aes(
-				colour = split
-				, shape = split
-			)
-			, alpha = .8
-		)
-		#p = p+opts(legend.background = theme_rect(colour='transparent',fill='transparent')) #used to be necessary
-		if(!is.null(split_lab)){
-			p = p+labs(colour = split_lab,shape = split_lab)
-		}
+		p = paste(p,"+\ngeom_point(\n\tmapping = aes(\n\t\tcolour = ",split,"\n\t\t, shape = ",split,"\n\t)\n\t, alpha = .8\n)",sep='')
 		if(do_lines){
-			p = p+geom_line(
-				aes(
-					colour = split
-					,linetype = split
-					,x = as.numeric(x)
-				)
-				, alpha = .8
-			)
-			if(!is.null(split_lab)){
-				p = p+labs(linetype = split_lab)
-			}
+			p = paste(p,"+\ngeom_line(\n\tmapping = aes(\n\t\tcolour = ",split,"\n\t\t, linetype = ",split,"\n\t\t, x = I(as.numeric(",x,"))\n\t)\n\t, alpha = .8\n)",sep='')
 		}
 		if(do_bars){
-			p = p+geom_errorbar(
-				aes(
-					colour = split
-					,ymin = ymin
-					,ymax = ymax
-				)
-				,linetype = 1
-				,legend = FALSE
-				,width = bar_width
-				, alpha = .5
-			)
+			p = paste(p,"+\ngeom_errorbar(\n\tmapping = aes(\n\t\tcolour = ",split,"\n\t\t, ymin = lo\n\t\t, ymax = hi\n\t)\n\t, linetype = 1\n\t, guide = 'none'\n\t, width = ",bar_width,"\n\t, alpha = .5\n)",sep='')
 		}
 	}else{
-		p = p+geom_point()
+		p = paste(p,"+\ngeom_point()",sep='')
 		if(do_lines){
-			p = p+geom_line(aes(x = as.numeric(x)))
+			p = paste(p,"+\ngeom_line(\n\tmapping = aes(\n\t\tx = I(as.numeric(",x,"))\n\t)\n)",sep='')
 		}
 		if(do_bars){
-			p = p+geom_errorbar(
-				aes(
-					ymin = ymin
-					,ymax = ymax
-				)
-				,linetype = 1
-				,legend = FALSE
-				,width = bar_width
-				,alpha = .5
-			)
+			p = paste(p,"+\ngeom_errorbar(\n\tmapping = aes(\n\t\tymin = lo\n\t\t, ymax = hi\n\t)\n\t, linetype = 1\n\t, guide = 'none'\n\t, width = ",bar_width,"\n\t, alpha = .5\n)",sep='')
 		}
 	}
 	if(!is.null(row)){
 		if(!is.null(col)){
-			if(row_y_free){
-				p = p+facet_grid(row~col,scales='free_y')
+			if(y_free){
+				p = paste(p,"+\nfacet_grid(\n\tfacets = ",row," ~ ",col,"\n\t, scales = 'free_y'\n)",sep='')
 			}else{
-				p = p+facet_grid(row~col)
+				p = paste(p,"+\nfacet_grid(\n\tfacets = ",row," ~ ",col,"\n)",sep='')
 			}
 		}else{
-			if(row_y_free){
-				p = p+facet_grid(row~.,scales='free_y')
+			if(y_free){
+				p = paste(p,"+\nfacet_grid(\n\tfacets = ",row," ~ .\n\t, scales = 'free_y'\n)",sep='')
 			}else{
-				p = p+facet_grid(row~.)
+				p = paste(p,"+\nfacet_grid(\n\tfacets = ",row," ~ .\n)",sep='')
 			}
 		}
 	}else{
 		if(!is.null(col)){
-			p = p+facet_grid(.~col)
+			p = paste(p,"+\nfacet_grid(\n\tfacets = . ~ ",col,"\n\t, scales = 'free_y'\n)",sep='')
 		}
 	}
-	if(!is.null(x_lab)){
-		p = p+labs(x = x_lab)
+	if(any(c((!is.null(x_lab)),(!is.null(y_lab)),(!is.null(split_lab))))){
+		p = paste(p,'+\nlabs(',sep='')
+		if(!is.null(x_lab)){
+			p = paste(p,"\n\tx = '",x_lab,"'",sep='')
+			if(!is.null(y_lab)){
+				p = paste(p,"\n\t, y = '",y_lab,"'",sep='')
+			}
+			if(!is.null(split_lab)){
+				p = paste(p,"\n\t, colour = '",split_lab,"'",sep='')
+				p = paste(p,"\n\t, shape = '",split_lab,"'",sep='')
+				if(do_lines){
+					p = paste(p,"\n\t, linetype = '",split_lab,"'",sep='')
+				}
+			}
+		}else{
+			if(!is.null(y_lab)){
+				p = paste(p,"\n\ty = '",y_lab,"'",sep='')
+				if(!is.null(split_lab)){
+					p = paste(p,"\n\t, colour = '",split_lab,"'",sep='')
+					p = paste(p,"\n\t, shape = '",split_lab,"'",sep='')
+					if(do_lines){
+						p = paste(p,"\n\t, linetype = '",split_lab,"'",sep='')
+					}
+				}
+			}else{
+				if(!is.null(split_lab)){
+					p = paste(p,"\n\t, colour = '",split_lab,"'",sep='')
+					p = paste(p,"\n\t, shape = '",split_lab,"'",sep='')
+					if(do_lines){
+						p = paste(p,"\n\t, linetype = '",split_lab,"'",sep='')
+					}
+				}
+			}
+		}
+		p = paste(p,'\n)',sep='')
 	}
-	if(!is.null(y_lab)){
-		p = p+labs(y = y_lab)
+	if(print_code){
+		cat(p)
+		return(stats)
+	}else{
+		return(eval(parse(text=p)))
 	}
-	return(p)
 }
 

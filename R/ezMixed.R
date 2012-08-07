@@ -2,20 +2,72 @@ ezMixed <-
 function(
 	data
 	, dv
+	, family = gaussian
 	, random
 	, fixed
-	, fixed_poly = NULL
-	, fixed_poly_max = NULL
-	, family = gaussian
-	, alarm = TRUE
-	, results_as_progress = FALSE
-	, highest = 0
-	, return_models = FALSE
-	, highest_first = TRUE
+	, covariates = NULL
+	, add_q = FALSE
+	, fix_gam = TRUE
+	, cov_gam = TRUE
+	, gam_smooth = c('s','te')
+	, gam_bs = 'ts'
+	, gam_k = Inf
+	, alarm = FALSE
+	, term_labels = NULL
+	, highest = Inf
+	, return_models = TRUE
+	, correction = AIC
+	, progress_dir = NULL
+	, resume = FALSE
+	, parallelism = 'none'
+	, gam_args = NULL
+	, mer_args = NULL
 ){
-	#original_warn <- #options(warn=1)
+	args_to_check = c('dv','random','fixed','covariates')
+	args = as.list(match.call()[-1])
+	for(i in 1:length(args)){
+		arg_name = names(args)[i]
+		if(arg_name%in%args_to_check){
+			if(is.symbol(args[[i]])){
+				code = paste(arg_name,'=.(',as.character(args[[i]]),')',sep='')
+				eval(parse(text=code))
+			}else{
+				if(is.language(args[[i]])){
+					arg_vals = as.character(args[[i]])
+					arg_vals = arg_vals[2:length(arg_vals)]
+					arg_vals = paste(arg_vals,collapse=',')
+					code = paste(arg_name,'=.(',arg_vals,')',sep='')
+					eval(parse(text=code))
+				}
+			}
+		}
+	}
+	if(!is.null(progress_dir)){
+		if(!file.exists(progress_dir)){
+			dir.create(progress_dir)
+		}
+		if(!file.exists(paste(progress_dir,'models',sep='/'))){
+			dir.create(paste(progress_dir,'models',sep='/'))
+		}
+		if(return_models){
+			warning(paste('"progress_dir" set to "',progress_dir,'"; setting "return_models" to FALSE.',sep=''),immediate.=TRUE,call.=FALSE)
+			return_models = FALSE
+		}
+		if(resume){
+			terms_done = list.files(
+				path = progress_dir
+				, pattern = '.RData'
+			)
+		}
+	}
 	start = proc.time()[3]
-	vars = as.character(c(dv,random,fixed))
+	if(!is.data.frame(data)){
+		stop('"data" must be a data frame.')
+	}
+	if(!is.numeric(data[,names(data)==dv])){
+		stop('"dv" must be numeric.')
+	}
+	vars = as.character(c(dv,random,fixed,covariates))
 	for(var in vars){
 		if(!(var %in% names(data))){
 			stop(paste('"',var,'" is not a variable in the data frame provided.',sep=''))			
@@ -25,280 +77,515 @@ function(
 			warning(paste('Converting "',var,'" from character to factor.',sep=''),immediate.=TRUE,call.=FALSE)
 		}
 	}
-	if(!is.data.frame(data)){
-		stop('"data" must be a data frame.')
+	numeric_covariates = NULL
+	if(cov_gam){
+		for(i in 1:length(covariates)){
+			if(is.numeric(data[,names(data)==as.character(covariates[i])])){
+				numeric_covariates = c(numeric_covariates,as.character(covariates[i]))
+			}
+		}		
 	}
-	if(!is.numeric(data[,names(data)==dv])){
-		stop('"dv" must be numeric.')
+	numeric_fixed = NULL
+	if(fix_gam){
+		for(i in 1:length(fixed)){
+			if(is.numeric(data[,names(data)==as.character(fixed[i])])){
+				if(length(unique(data[,names(data)==as.character(fixed[i])]))>2){
+					numeric_fixed = c(numeric_fixed,as.character(fixed[i]))
+				}
+			}else{
+				data[,names(data)==as.character(fixed[i])] = ordered(data[,names(data)==as.character(fixed[i])])
+			}
+		}		
 	}
-	randoms = NULL
-	for(i in random){
-		randoms = paste(randoms,'(1|',i,')+',sep='')
+	if(add_q){
+		numeric_fixed = c(numeric_fixed,'q')
+		fixed =  structure(as.list(c(fixed,.(q))),class = 'quoted')
 	}
-	formula_base = paste(
-		dv
-		, '~'
-		, randoms
-		, '('
-		, paste(fixed,collapse='+')
-		, ')'
-	)
-	if(length(fixed)==1){
-		full_formula = formula_base
-	}else{
-		full_formula = paste(
-			formula_base
-			, '^'
-			, as.character(length(fixed))
-		)
+	if(is.null(term_labels)){
+		to_terms = paste('y~',paste(fixed,collapse='*'))
+		from_terms = terms(eval(parse(text=to_terms)))
+		term_labels = attr(from_terms,'term.labels')
 	}
-	from_terms = terms(eval(parse(text=full_formula)))
-	term_labels = attr(from_terms,'term.labels')
-	term_labels = term_labels[!grepl('|',term_labels,fixed=T)]
-	if(highest>0){
+	if(is.finite(highest)){
 		term_labels = term_labels[laply((strsplit(term_labels,':')),length)<=highest]
 	}
-	if(!is.null(fixed_poly)){
-		if(is.null(fixed_poly_max)){
-			fixed_poly_max = rep(NA,length(fixed_poly))
-			for(i in 1:length(fixed_poly)){
-				fixed_poly_max[i] = length(unique(data[,names(data)==fixed_poly[i]]))-1
-			}
-		}else{
-			if(length(fixed_poly)!=length(fixed_poly_max)){
-				stop(paste('"fixed_poly_max" must be the same length as "fixed_poly"'))
-			}
-		}
-		for(i in 1:length(fixed_poly)){
-			temp = term_labels
-			var = as.character(fixed_poly[i])
-			for(j in 2:fixed_poly_max[i]){
-				temp2 = term_labels[str_detect(term_labels,var)]
-				temp2 = sub(var,paste('I(',var,'^',j,')',sep=''),temp2)
-				temp = c(temp,temp2)
-			}
-			term_labels = temp
-		}
-	}
-	to_return = list()
-	to_return$summary = data.frame(
-		effect = factor(term_labels,levels=term_labels)
-		, error = FALSE
-		, warning = FALSE
-		, RLnLu = NA
-		, RLnLr = NA
-		, DFu = NA
-		, DFr = NA
-		, L10LRa = NA
-		, L10LRb = NA
-	)
-	to_return$formulae = list()
-	to_return$errors = list()
 	for(i in 1:length(term_labels)){
-		to_return$errors[[i]] = list(
-			unrestricted = NA
-			, restricted = NA
-		)
-		names(to_return$errors)[i] = term_labels[i]
+		temp = unlist(strsplit(term_labels[i],':'))
+		temp = temp[order(temp)]
+		term_labels[i] = paste(temp,collapse=':')
 	}
-	to_return$warnings = to_return$errors
-	if(return_models){
-		to_return$models = list()
+	term_labels = term_labels[order(str_count(term_labels,':'),term_labels)]
+	if(add_q){
+		term_labels = term_labels[term_labels!='q']
 	}
-	formula_base = paste(
-		dv
-		, '~'
-		, randoms
-	)
-	formula_base = substr(formula_base,1,nchar(formula_base)-1)
-	if(!results_as_progress){
-		progress = create_progress_bar('timeCI')
-		progress$init(length(term_labels))
-	}
-	old_restricted_formula = ''
-	if(highest_first){
-		term_order = rev(1:length(term_labels))
-	}else{
-		term_order = 1:length(term_labels)
-	}
-	for(this_term_num in term_order){
+	cat('  bits e w effect\n------ - - ------\n\r')
+	process_term = function(this_term_num){
+		term_text = str_replace_all(term_labels[this_term_num],':','BY')
+		if(resume){
+			if(paste(term_text,'.RData',sep='') %in% terms_done){
+				eval(parse(text=paste("load(paste(progress_dir,'/",term_text,".RData',sep=''))",sep="")))
+				bits = format(c(out_from_process_term$summary$bits,-1), digits=1, nsmall = 2,scientific=T)
+				cat(
+					c(
+						bits[1]
+						, ifelse(out_from_process_term$summary$error,'X','-')
+						, ifelse(out_from_process_term$summary$warning,'X','-')
+						, term_labels[this_term_num]
+						, '\n\r'
+					)
+					, sep = ' '
+				)
+				flush.console()
+				return(out_from_process_term)
+			}
+		}
+		if(parallelism!='full'){
+			cat(
+				c(
+					'      '
+					, ' '
+					, ' '
+					, term_labels[this_term_num]
+					, '\r'
+				)
+				, sep = ' '
+			)
+			flush.console()
+		}
 		effect = term_labels[this_term_num]
 		effect_split = strsplit(effect,':')[[1]]
 		this_height = length(effect_split)
-		effects_with_poly = grep('I(',effect_split,fixed=T)
-		if(length(effects_with_poly)==0){ #no polynomials
-			effect_baseline = gsub(':','*',effect)
-			unrestricted_formula = paste(
-				formula_base
-				,'+'
-				, effect_baseline
-			)				
-			restricted_formula = paste(
+		numeric_fixed_num = sum(effect_split%in%numeric_fixed)
+		this_data = data
+		for(i in effect_split[effect_split!='q']){
+			this_data = this_data[!is.na(this_data[,names(this_data)==i]),]
+		}
+		if('q' %in% effect_split){
+			this_data = ddply(
+				.data = data
+				, .variables = structure(as.list(c(random,fixed[(fixed%in%effect_split)&(fixed!='q')])),class = 'quoted')
+				, .fun = function(x){
+					to_return = data.frame(
+						q = ((1:nrow(x))-.5)/nrow(x)
+						, EZTEMP = sort(x[,names(x)==dv])
+					)
+					names(to_return)[ncol(to_return)] = dv
+					return(to_return)
+				}
+			)
+		}
+		if((!is.null(numeric_covariates)&cov_gam)|(fix_gam&(numeric_fixed_num>0))){
+			formula_base = paste(
+				as.character(dv)
+				, '~'
+				, paste(
+					's('
+					, random
+					, ',bs="re")'
+					, collapse='+'
+					, sep = ''
+				)
+				, '+'
+			)
+			if(is.null(covariates[covariates %in% numeric_covariates])){
+				formula_base = paste(
+					formula_base
+					, '+'
+					, paste(
+						gam_smooth[1]
+						,'('
+						, covariates[covariates %in% numeric_covariates]
+						, ',bs="'
+						, gam_bs
+						, '")'
+						, collapse = '+'
+						, sep = ''
+					)
+					, '+'
+					, sep = ''
+				)
+			}
+			if(is.null(covariates[!(covariates %in% numeric_covariates)])){
+				formula_base = paste(
+					formula_base
+					, '+'
+					, paste(
+						covariates[!(covariates %in% numeric_covariates)]
+						, collapse = '+'
+					)
+					, '+'
+					, sep = ''
+				)			
+			}
+		}else{
+			formula_base = paste(
+				as.character(dv)
+				, '~'
+				, paste(
+					'(1|'
+					, random
+					, ')'
+					, collapse='+'
+					, sep = ''
+				)
+				, '+'
+			)
+			if(is.null(covariates)){
+				formula_base = paste(
+					formula_base
+					, '+'
+					, paste(
+						covariates
+						, collapse = '+'
+					)
+					, '+'
+					, sep = ''
+				)
+			}
+		}
+		if((fix_gam&(numeric_fixed_num>0))){
+			if(this_height==1){
+				restricted = 'NULL'
+				k = min(
+					gam_k
+					, length(unique(this_data[,names(this_data)==effect]))
+				)
+				unrestricted = paste(
+					gam_smooth[1]
+					,'('
+					, effect
+					, ',k='
+					, k
+					, ',bs="'
+					, gam_bs
+					, '")'
+					, sep=''
+				)
+			}else{
+				convert_to_gam_formula = function(formula){
+					temp = terms(eval(parse(text=formula)))
+					temp = attr(temp,'term.labels')
+					for(i in 1:length(temp)){
+						temp_split = strsplit(temp[i],':')[[1]]
+						temp_numeric = temp_split[temp_split%in%numeric_fixed]
+						if(length(temp_numeric)!=0){
+							k = rep(NA,length(temp_numeric))
+							for(j in 1:length(temp_numeric)){
+								k[j] = min(c(gam_k,length(unique(this_data[,names(this_data)==temp_numeric[j]]))))
+							}
+							temp_not_numeric = temp_split[!(temp_split%in%numeric_fixed)]
+							if(length(temp_not_numeric)==0){
+								temp[i] = paste(
+									ifelse(numeric_fixed_num>1,ifelse(length(gam_smooth)>1,gam_smooth[2],gam_smooth),gam_smooth[1])
+									,'('
+									, paste(temp_numeric,collapse=',')
+									, ',k=c('
+									, paste(k,collapse=',')
+									, '),bs="'
+									, gam_bs
+									, '")'
+									, sep=''
+								)
+							}else{
+								dummy = paste(temp_not_numeric,collapse='BY')
+								#dummy = paste(temp_not_numeric,'ORDERED',collapse='BY',sep='')
+								if(!(dummy%in%names(this_data))){
+									this_data$ezDUMMY <<- ''
+									for(this_temp_not_numeric in temp_not_numeric){
+										this_data$ezDUMMY <<- paste(this_data$ezDUMMY,this_data[,names(this_data)==this_temp_not_numeric],sep='')
+									}
+									names(this_data)[ncol(this_data)] <<- dummy
+								}
+								this_data[,names(this_data)==dummy] <<- ordered(this_data[,names(this_data)==dummy])
+								temp[i] = paste(
+									ifelse(numeric_fixed_num>1,ifelse(length(gam_smooth)>1,gam_smooth[2],gam_smooth),gam_smooth[1])
+									,'('
+									, paste(temp_numeric,collapse=',')
+									, ',k=c('
+									, paste(k,collapse=',')
+									, '),by='
+									, dummy
+									, ',bs="'
+									, gam_bs
+									, '")'
+									, sep=''
+								)
+							}
+						}
+					}
+					return(paste(temp,collapse='+'))
+				}
+				restricted = convert_to_gam_formula(paste('y~',gsub(':','*',effect),'-',effect))
+				unrestricted = convert_to_gam_formula(paste('y~',gsub(':','*',effect)))
+			}					
+		}else{
+			if(this_height==1){
+				restricted = 'NULL'
+				unrestricted = effect
+			}else{
+				restricted = paste(gsub(':','*',effect),'-',effect)
+				unrestricted = paste(gsub(':','*',effect))
+			}
+		}
+		make_formula_pretty = function(formula){
+			formula_terms = terms(eval(parse(text=formula)))
+			formula_terms = attr(attr(formula_terms,'factors'),'dimnames')[[2]]
+			for(i in grep('|',formula_terms,fixed=TRUE)){
+				formula_terms[i] = paste('(',formula_terms[i],')')
+			}
+			formula_terms = gsub(' ','',formula_terms)
+			formula_text = paste(formula_terms,collapse=' + ')
+			formula_text = paste(as.character(dv),formula_text,sep=' ~ ')
+			return(formula_text)
+		}
+		restricted_formula = make_formula_pretty(
+			paste(
 				formula_base
 				, '+'
-				, effect_baseline
-				, '-'
-				, effect
+				, restricted
 			)
-		}else{ #the effect involves polynomials
-			effects_without_poly = (1:this_height)[!((1:this_height)%in%effects_with_poly)]
-			linear_effects = effect_split[effects_without_poly]
-			k = length(linear_effects)
-			for(i in effect_split[effects_with_poly]){
-				temp = sub('I(','',i,fixed=T)
-				temp = substr(temp,1,nchar(temp)-3)
-				linear_effects = c(linear_effects,temp)
-			}
-			effects_formula = paste('(',paste(linear_effects,collapse='*'),')')
-			for(i in effect_split[effects_with_poly]){
-				temp = sub('I(','',i,fixed=T)
-				temp = substr(temp,1,nchar(temp)-3)
-				degree = as.numeric(substr(i,nchar(i)-1,nchar(i)-1))
-				temp_effects = effects_formula
-				for(j in 2:degree){
-					effects_formula = paste(
-						effects_formula
-						, '+'
-						, gsub(
-							temp
-							, paste('I(',temp,'^',j,')')
-							, temp_effects
-						)
-					)
-				}					
-			}
-			restricted_formula = paste(formula_base,'+',effects_formula,'-',effect)
-			unrestricted_formula = paste(formula_base,'+',effects_formula)
-		}
-		#convert the formulas into an easier to read format
-		unrestricted_formula_terms = terms(eval(parse(text=unrestricted_formula)))
-		unrestricted_formula_terms = attr(attr(unrestricted_formula_terms,'factors'),'dimnames')[[2]]
-		for(i in grep('|',unrestricted_formula_terms,fixed=TRUE)){
-			unrestricted_formula_terms[i] = paste('(',unrestricted_formula_terms[i],')')
-		}
-		unrestricted_formula_terms = gsub(' ','',unrestricted_formula_terms)
-		unrestricted_formula_text = paste(unrestricted_formula_terms,collapse=' + ')
-		restricted_formula_terms = terms(eval(parse(text=restricted_formula)))
-		restricted_formula_terms = attr(attr(restricted_formula_terms,'factors'),'dimnames')[[2]]
-		for(i in grep('|',restricted_formula_terms,fixed=TRUE)){
-			restricted_formula_terms[i] = paste('(',restricted_formula_terms[i],')')
-		}
-		restricted_formula_terms = gsub(' ','',restricted_formula_terms)
-		restricted_formula_text = paste(restricted_formula_terms,collapse=' + ')
-		#begin the fitting
-		unrestricted_fit = NULL
-		if(restricted_formula!=old_restricted_formula){
-			restricted_fit = NULL
-		}
-		options(warn=-1)
-		w = NULL
-		e = NULL
-		unrestricted_fit = NULL
-		try(
-			unrestricted_fit <- withCallingHandlers(
-				{ 
-					lmer(
-						formula = eval(parse(text=unrestricted_formula))
-						, family = family
-						, data = data
-						, REML = FALSE
-					)
-				}
-				, warning = function(w) {w<<-w}
-				, error = function(e) {e<<-e}
-			)
-			, silent = T
 		)
-		options(warn=0)
-		if(!is.null(e)){
-			to_return$summary$error[this_term_num] = TRUE
-			to_return$errors[[this_term_num]]$unrestricted = e$message
-		}else{
-			if(!is.null(w)){
-				to_return$summary$warning[this_term_num] = TRUE
-				to_return$warnings[[this_term_num]]$unrestricted = w$message
-			}
-			if(restricted_formula!=old_restricted_formula){
-				old_restricted_formula = restricted_formula
-				options(warn=-1)
-				w = NULL
-				e = NULL
-				restricted_fit = NULL
+		unrestricted_formula = make_formula_pretty(
+			paste(
+				formula_base
+				, '+'
+				, unrestricted
+			)
+		)
+		do_fit = function(formula){
+			original_warn = options(warn=-1)
+			w = NULL
+			e = NULL
+			fit = NULL
+			if((!is.null(numeric_covariates)&cov_gam)|(fix_gam&(numeric_fixed_num>0))){
 				try(
-					restricted_fit <- withCallingHandlers(
+					fit <- withCallingHandlers(
 						{ 
-							lmer(
-								formula = eval(parse(text=restricted_formula))
-								, family = family
-								, data = data
-								, REML = FALSE
-							)
+							eval(parse(text=paste(
+								"bam( formula ="
+								, formula
+								, ", data = this_data , method = 'ML' "
+								, gam_args
+								, ")"
+							)))
 						}
-						, warning = function(w) {w<<-w}
-						, error = function(e) {e<<-e}
+						, warning = function(x) {w<<-c(w,x$message)}
+						, error = function(x) {e<<-c(e,x$message)}
 					)
 					, silent = T
 				)
-				options(warn=0)
-				if(!is.null(e)){
-					to_return$summary$error[this_term_num] = TRUE
-					to_return$errors[[this_term_num]]$restricted = e$message
+			}else{
+				try(
+					fit <- withCallingHandlers(
+						{ 
+							if((family==gaussian)|(family=='gaussian')){
+								eval(parse(text=paste(
+									"lmer( formula = "
+									, formula
+									, ", data = this_data , REML = FALSE"
+									, mer_args
+									, ")"
+								)))
+							}else{
+								eval(parse(text=paste(
+									"glmer( formula ="
+									, formula
+									, ", data = this_data, family = family"
+									, mer_args
+									, ")"
+								)))
+							}
+						}
+						, warning = function(x) {w<<-c(w,x$message)}
+						, error = function(x) {e<<-c(e,x$message)}
+					)
+					, silent = T
+				)
+			}
+			options(original_warn)
+			out_from_do_fit = list(
+				fit = fit
+				, errors = e
+				, warnings = w
+			)
+			return(out_from_do_fit)
+		}
+		out_from_process_term = list(
+			summary = data.frame(
+				effect = term_labels[this_term_num]
+				, errors = NA
+				, warnings = NA
+				, bits = NA
+			)
+			, formulae = list(
+				restricted = NA
+				, unrestricted = NA
+			)
+			, errors = list(
+				restricted = NA
+				, unrestricted = NA
+			)
+			, warnings = list(
+				restricted = NA
+				, unrestricted = NA
+			)
+		)
+		if(return_models){
+			out_from_process_term$models = list(restricted=NA,unrestricted=NA)
+		}
+		out_from_process_term$formulae$restricted = restricted_formula
+		out_from_process_term$formulae$unrestricted = unrestricted_formula
+		if(parallelism=='pair'){
+			out = llply(
+				.data = c(unrestricted_formula,restricted_formula)
+				, .fun = do_fit
+				, .parallel = TRUE
+			)
+			unrestricted_fit = out[[1]][[1]]
+			unrestricted_errors = out[[1]][[2]]
+			unrestricted_warnings = out[[1]][[3]]
+			restricted_fit = out[[2]][[1]]
+			restricted_errors = out[[2]][[2]]
+			restricted_warnings = out[[2]][[3]]
+			rm(out)
+			gc()
+			out_from_process_term$summary$errors = ifelse(is.null(unrestricted_errors)&is.null(restricted_errors),F,T)
+			out_from_process_term$summary$warnings = ifelse(is.null(unrestricted_warnings)&is.null(restricted_warnings),F,T)
+			out_from_process_term$errors$restricted = restricted_errors
+			out_from_process_term$errors$unrestricted = unrestricted_errors
+			out_from_process_term$warnings$restricted = restricted_warnings
+			out_from_process_term$warnings$unrestricted = unrestricted_warnings
+			if(!is.null(unrestricted_fit)){
+				unrestricted_cLL = correction(unrestricted_fit)*log2(exp(1))
+				restricted_cLL = correction(restricted_fit)*log2(exp(1))
+				out_from_process_term$summary$bits = restricted_cLL - unrestricted_cLL
+			}
+			if(!is.null(progress_dir)){
+				eval(parse(text=paste("dir.create(paste(progress_dir,'/models/",term_text,"',sep=''))",sep="")))
+				eval(parse(text=paste("save(unrestricted_fit, file = paste(progress_dir,'/models/",term_text,"/unrestricted_fit.RData',sep=''))",sep="")))
+				eval(parse(text=paste("save(restricted_fit, file = paste(progress_dir,'/models/",term_text,"/restricted_fit.RData',sep=''))",sep="")))
+			}else{
+				out_from_process_term$models$unrestricted=unrestricted_fit
+				out_from_process_term$models$restricted=restricted_fit
+			}
+			rm(unrestricted_fit)
+			rm(restricted_fit)
+			gc()
+		}else{
+			out = do_fit(unrestricted_formula)
+			unrestricted_fit = out[[1]]
+			unrestricted_errors = out[[2]]
+			unrestricted_warnings = out[[3]]
+			rm(out)
+			gc()
+			out_from_process_term$summary$errors = ifelse(is.null(unrestricted_errors),F,T)
+			out_from_process_term$summary$warnings = ifelse(is.null(unrestricted_warnings),F,T)
+			out_from_process_term$errors$unrestricted = unrestricted_errors
+			out_from_process_term$warnings$unrestricted = unrestricted_warnings
+			if(!is.null(unrestricted_fit)){
+				unrestricted_cLL = correction(unrestricted_fit)*log2(exp(1))
+				if(!is.null(progress_dir)){
+					eval(parse(text=paste("dir.create(paste(progress_dir,'/models/",term_text,"',sep=''))",sep="")))
+					eval(parse(text=paste("save(unrestricted_fit, file = paste(progress_dir,'/models/",term_text,"/unrestricted_fit.RData',sep=''))",sep="")))
 				}else{
-					if(!is.null(w)){
-						to_return$summary$warning[this_term_num] = TRUE
-						to_return$warnings[[this_term_num]]$restricted = w$message
+					if(return_models){
+						out_from_process_term$models$unrestricted = unrestricted_fit
 					}
 				}
+				rm(unrestricted_fit)
+				gc()
+				out = do_fit(restricted_formula)
+				restricted_fit = out[[1]]
+				restricted_errors = out[[2]]
+				restricted_warnings = out[[3]]
+				rm(out)
+				gc()
+				out_from_process_term$summary$errors = ifelse(is.null(restricted_errors)&!out_from_process_term$summary$errors,F,T)
+				out_from_process_term$summary$warnings = ifelse(is.null(restricted_warnings)&!out_from_process_term$summary$warnings,F,T)
+				out_from_process_term$errors$restricted = restricted_errors
+				out_from_process_term$warnings$restricted = restricted_warnings
+				restricted_cLL = correction(restricted_fit)*log2(exp(1))
+				out_from_process_term$summary$bits = restricted_cLL - unrestricted_cLL
+				if(!is.null(progress_dir)){
+					eval(parse(text=paste("save(restricted_fit, file = paste(progress_dir,'/models/",term_text,"/restricted_fit.RData',sep=''))",sep="")))
+				}else{
+					if(return_models){
+						out_from_process_term$models$restricted = restricted_fit
+					}
+				}			
+				rm(restricted_fit)
+				gc()
 			}
 		}
-		to_return$formulae[[this_term_num]] = list()
-		to_return$formulae[[this_term_num]]$restricted = restricted_formula_text
-		to_return$formulae[[this_term_num]]$unrestricted = unrestricted_formula_text
-		names(to_return$formulae)[this_term_num] = term_labels[this_term_num]
-		if(return_models){
-			to_return$models[[this_term_num]] = list()
-			to_return$models[[this_term_num]]$restricted = restricted_fit
-			to_return$models[[this_term_num]]$unrestricted = unrestricted_fit
-			names(to_return$models)[this_term_num] = term_labels[this_term_num]
+		if(!is.null(progress_dir)){
+			eval(parse(text=paste("save(out_from_process_term, file = paste(progress_dir,'/",term_text,".RData',sep=''))",sep="")))
 		}
-		if((!is.null(restricted_fit)) & (!is.null(unrestricted_fit))){
-			restricted_logLik = logLik(restricted_fit)
-			unrestricted_logLik = logLik(unrestricted_fit)
-			to_return$summary$RLnLu[this_term_num] = as.numeric(unrestricted_logLik)
-			to_return$summary$RLnLr[this_term_num] = as.numeric(restricted_logLik)
-			to_return$summary$DFu[this_term_num] = attr(unrestricted_logLik,'df')
-			to_return$summary$DFr[this_term_num] = attr(restricted_logLik,'df')
-			to_return$summary$L10LRa[this_term_num] = (AIC(restricted_fit)-AIC(unrestricted_fit))*log(exp(1), base = 10)
-			to_return$summary$L10LRb[this_term_num] = (BIC(restricted_fit)-BIC(unrestricted_fit))*log(exp(1), base = 10)
-		}
-		if(results_as_progress){
-			longest_term_char_length = nchar(term_labels[length(term_labels)])
-			this_term_char_length = nchar(effect)
-			llrs = format(c(to_return$summary$L10LRa[this_term_num], to_return$summary$L10LRb[this_term_num],-1), digits=3, nsmall = 2,scientific=T)
-			cat(
-				c(
-					term_labels[this_term_num]
-					, paste(rep(' ',longest_term_char_length-this_term_char_length),collapse='')
-					, ' -> L10LRa = '
-					, llrs[1]
-					, ' , L10LRb = '
-					, llrs[2]
-					, '\n'
-				)
-				, sep = ''
+		bits = format(c(out_from_process_term$summary$bits,-1), digits=1, nsmall = 2,scientific=T)
+		cat(
+			c(
+				bits[1]
+				, ifelse(out_from_process_term$summary$error,'X','-')
+				, ifelse(out_from_process_term$summary$warning,'X','-')
+				, term_labels[this_term_num]
+				, '\n\r'
 			)
-		}else{
-			progress$step()
+			, sep = ' '
+		)
+		flush.console()
+		return(out_from_process_term)
+	}
+	if(parallelism!='full'){
+		out_from_terms = list()
+		for(this_term_num in 1:length(term_labels)){
+			out_from_terms[[this_term_num]] = process_term(this_term_num)
 		}
-	}
-	if(!results_as_progress){
-		progress$term()
 	}else{
-		cat('Time taken for ezMixed() to complete:',round(proc.time()[3]-start),'seconds\n')
+		out_from_terms = llply(
+			.data = 1:length(term_labels)
+			, .fun = process_term
+			, .parallel = TRUE
+		)
 	}
+	out_from_ezMixed = list()
+	out_from_ezMixed$summary = ldply(
+		.data = out_from_terms
+		, .fun = function(x){
+			return(x$summary)
+		}
+	)
+	out_from_ezMixed$formulae = llply(
+		.data = out_from_terms
+		, .fun = function(x){
+			return(x$formulae)
+		}
+	)
+	names(out_from_ezMixed$formulae) = out_from_ezMixed$summary$effect
+	out_from_ezMixed$errors = llply(
+		.data = out_from_terms
+		, .fun = function(x){
+			return(x$errors)
+		}
+	)
+	names(out_from_ezMixed$errors) = out_from_ezMixed$summary$effect
+	out_from_ezMixed$warnings = llply(
+		.data = out_from_terms
+		, .fun = function(x){
+			return(x$warnings)
+		}
+	)
+	names(out_from_ezMixed$warnings) = out_from_ezMixed$summary$effect
+	if(return_models){
+		out_from_ezMixed$models = llply(
+			.data = out_from_terms
+			, .fun = function(x){
+				return(x$models)
+			}
+		)
+		names(out_from_ezMixed$models) = out_from_ezMixed$summary$effect
+	}
+	cat('Time taken for ezMixed() to complete:',round(proc.time()[3]-start),'seconds\n')
 	if(alarm){
 		alarm()
 	}
-	#options(original_warn)
-	return(to_return)
+	return(out_from_ezMixed)
 }

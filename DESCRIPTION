@@ -1,9 +1,9 @@
 Package: ez
-Version: 4.0-2
-Date: 2012-08-07
+Version: 4.1-1
+Date: 2012-08-11
 Title: Easy analysis and visualization of factorial experiments.
-Author: Michael A. Lawrence <Mike.Lawrence@dal.ca>
-Maintainer: Michael A. Lawrence <Mike.Lawrence@dal.ca>
+Author: Michael A. Lawrence <mike.lwrnc@gmail.com>
+Maintainer: Michael A. Lawrence <mike.lwrnc@gmail.com>
 URL: http://github.com/mike-lawrence/ez
 Depends: R (>= 2.15), car (>= 2.0-12), ggplot2 (>= 0.9.1), lme4 (>=
         0.999999-0), Matrix (>= 1.0-6), mgcv (>= 1.7-13), memoise (>=
@@ -26,6 +26,6 @@ Description: This package facilitates easy analysis of factorial
 License: GPL (>= 2)
 LazyLoad: yes
 ByteCompile: true
-Packaged: 2012-08-07 13:10:28 UTC; mike
+Packaged: 2012-08-11 15:33:12 UTC; mike
 Repository: CRAN
-Date/Publication: 2012-08-07 15:06:58
+Date/Publication: 2012-08-11 17:03:24

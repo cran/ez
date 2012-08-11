@@ -27,7 +27,7 @@ A list with the following elements:
 \item{models}{(If requested by setting \code{return_models=TRUE}) A list similar to \code{formulae} but instead storing each fitted model. }
 }
 \author{
-Michael A. Lawrence \email{Mike.Lawrence@dal.ca}\cr
+Michael A. Lawrence \email{mike.lwrnc@gmail.com}\cr
 Visit the \code{ez} development site at \url{http://github.com/mike-lawrence/ez}\cr
 for the bug/issue tracker and the link to the mailing list.
 }
@@ -35,6 +35,7 @@ for the bug/issue tracker and the link to the mailing list.
 \code{\link{ezMixed}}
 }
 \examples{
+\dontrun{
 #Read in the ANT data (see ?ANT).
 data(ANT)
 head(ANT)
@@ -51,5 +52,6 @@ rt_mix = ezMixed(
 
 rt_mix = ezMixedProgress('rt_mix')
 print(rt_mix$summary)
+}
 
 }

@@ -1,6 +1,6 @@
 Package: ez
-Version: 4.1-1
-Date: 2012-08-11
+Version: 4.2-0
+Date: 2013-06-20
 Title: Easy analysis and visualization of factorial experiments.
 Author: Michael A. Lawrence <mike.lwrnc@gmail.com>
 Maintainer: Michael A. Lawrence <mike.lwrnc@gmail.com>
@@ -26,6 +26,7 @@ Description: This package facilitates easy analysis of factorial
 License: GPL (>= 2)
 LazyLoad: yes
 ByteCompile: true
-Packaged: 2012-08-11 15:33:12 UTC; mike
+Packaged: 2013-06-21 00:21:55 UTC; mike
+NeedsCompilation: no
 Repository: CRAN
-Date/Publication: 2012-08-11 17:03:24
+Date/Publication: 2013-06-21 07:41:09

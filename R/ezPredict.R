@@ -96,14 +96,14 @@ function(
 			)
 		))))
 		mm = model.matrix(requested_terms,to_return)
-		f = fixef(fit)
+		f = lme4::fixef(fit)
 		v = vcov(fit)
 		if(zero_intercept_variance){
 			v[1,] = 0
 			v[,1] = 0
 		}
 	}else{
-		mm <- predict(fit,to_return,type="lpmatrix") # get a coefficient matrix
+		mm <- predict.gam(fit,to_return,type="lpmatrix") # get a coefficient matrix
 		for(i in randoms){
 			mm[,grep(paste('s(',i,')',sep=''),dimnames(mm)[[2]],fixed=T)] = 0 #zero the subject entry	
 		}

@@ -103,7 +103,7 @@ function(
 			v[,1] = 0
 		}
 	}else{
-		mm <- predict.gam(fit,to_return,type="lpmatrix") # get a coefficient matrix
+		mm <- predict(fit,to_return,type="lpmatrix") # get a coefficient matrix
 		for(i in randoms){
 			mm[,grep(paste('s(',i,')',sep=''),dimnames(mm)[[2]],fixed=T)] = 0 #zero the subject entry	
 		}

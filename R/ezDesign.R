@@ -7,6 +7,9 @@ function(
 	, col = NULL
 	, cell_border_size = 10
 ){
+	if(inherits(data, "tbl_df")) {
+		data <- as.data.frame(data)
+	}
 	args_to_check = c('x','y','row','col')
 	args = as.list(match.call()[-1])
 	for(i in 1:length(args)){
@@ -57,7 +60,7 @@ function(
 	if(length(unique(counts$y))>length(unique(counts$x))){
 		cell_border_size = cell_border_size/length(unique(counts$y))
 	}else{
-		cell_border_size = cell_border_size/length(unique(counts$x))		
+		cell_border_size = cell_border_size/length(unique(counts$x))
 	}
 	if(!is.null(row)){
 		if(!is.factor(counts[,names(counts)==row])){
@@ -92,7 +95,7 @@ function(
 			, ymax = 'ymax'
 			, xmin = 'xmin'
 			, xmax = 'xmax'
-			, fill = 'Count'	
+			, fill = 'Count'
 		)
 	)+
 	geom_rect()+
@@ -121,7 +124,7 @@ function(
 		p = p + geom_rect(
 			size = cell_border_size
 			, colour = 'grey90'
-			, show_guide = FALSE
+			, show.legend = FALSE
 		)
 	}
 	p = p + scale_x_continuous(

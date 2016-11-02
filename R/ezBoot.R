@@ -12,6 +12,9 @@ function(
 	, parallel = FALSE
 	, alarm = FALSE
 ){
+	if(inherits(data, "tbl_df")) {
+		data <- as.data.frame(data)
+	}
 	args_to_check = c('dv','wid','within','between')
 	args = as.list(match.call()[-1])
 	for(i in 1:length(args)){
@@ -35,7 +38,7 @@ function(
 	vars = as.character(c(dv,wid,between,within))
 	for(var in vars){
 		if(!(var %in% names(data))){
-			stop(paste('"',var,'" is not a variable in the data frame provided.',sep=''))			
+			stop(paste('"',var,'" is not a variable in the data frame provided.',sep=''))
 		}
 	}
 	if(is.null(within) & is.null(between)){
@@ -67,7 +70,7 @@ function(
 			data[,names(data)==var]=factor(data[,names(data)==var])
 		}
 		if(length(levels(data[,names(data)==var]))==1){
-			stop(paste('"',var,'" has only one level."',sep=''))			
+			stop(paste('"',var,'" has only one level."',sep=''))
 		}
 	}
 	names(data)[names(data)==as.character(dv)]='ezDV'
@@ -181,7 +184,7 @@ function(
 		, .parallel = parallel
 	)
 	boots = Filter(Negate(empty), boots)
-	boots = do.call(rbind,boots)	
+	boots = do.call(rbind,boots)
 	to_return = list()
 	if(lmer){
 		to_return$fit = fit
@@ -193,4 +196,3 @@ function(
 	}
 	return(to_return)
 }
-

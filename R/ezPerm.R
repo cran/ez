@@ -9,6 +9,9 @@ function(
 	, parallel = FALSE
 	, alarm = FALSE
 ){
+	if(inherits(data, "tbl_df")) {
+		data <- as.data.frame(data)
+	}
 	args_to_check = c('dv','wid','within','between')
 	args = as.list(match.call()[-1])
 	for(i in 1:length(args)){
@@ -41,7 +44,7 @@ function(
 		stop('"perms" must be numeric.')
 	}else{
 		if(perms<0){
-			stop('"perms" must be >= 0.')			
+			stop('"perms" must be >= 0.')
 		}else{
 			if(perms%%1){
 				stop('"perms" must be an integer.')
@@ -89,7 +92,7 @@ function(
 			)
 		)
 		,sep = ''
-	)	
+	)
 	obs = ezPerm_aov(data,aov_formula)
 	sim_data=data
 	if(!is.null(between)){
@@ -139,4 +142,3 @@ function(
 	}
 	return(perm_test)
 }
-

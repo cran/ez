@@ -8,6 +8,9 @@ function(
 	, resample_between = TRUE
 	, check_args = TRUE
 ){
+	if(inherits(data, "tbl_df")) {
+		data <- as.data.frame(data)
+	}
 	if(check_args){
 		args_to_check = c('dv','wid','within','between')
 		args = as.list(match.call()[-1])
@@ -74,7 +77,7 @@ function(
 			#, .progress = 'time'
 		)
 		resampled_data = Filter(Negate(empty), resampled_data)
-	}	
+	}
 	if(resample_within){
 		if(!resample_between){
 			resampled_data = dlply(
